@@ -1,0 +1,60 @@
+# External Projects (클론된 프로젝트들)
+OpenManus/
+droidrun/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Config files with secrets
+config.toml
+.env
+*.key
+*.pem
+
+# Logs
+*.log
+logs/
+
+# Screenshots & Temp files
+screenshots/
+*.tmp
+*.temp
+
+# OS
+.DS_Store
+Thumbs.db
+

@@ -1,0 +1,3173 @@
+# 🎯 OpenManus & DroidRun 완전 가이드
+
+> **당신의 AI 에이전트 자동화 프로젝트를 위한 완벽한 이해서**
+> 
+> 이 문서는 OpenManus와 DroidRun 두 프로젝트를 처음부터 끝까지 완전히 이해할 수 있도록 작성되었습니다.
+> 영어로 된 코드와 주석을 한국어로 풀어서 설명하며, 모든 전문 용어에 대해 **쉬운 비유**와 **실제 작동 메커니즘**을 포함합니다.
+
+---
+
+## 📚 목차
+
+1. [프로젝트 전체 개요](#1-프로젝트-전체-개요)
+2. [OpenManus 완전 분석](#2-openmanus-완전-분석)
+3. [DroidRun 완전 분석](#3-droidrun-완전-분석)
+4. [두 프로젝트 통합 전략](#4-두-프로젝트-통합-전략)
+5. [실전 활용 가이드](#5-실전-활용-가이드)
+
+---
+
+## 1. 프로젝트 전체 개요
+
+### 1.1 프로젝트 목표
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    🎯 최종 목표                               │
+│                                                              │
+│  "자연어 명령 하나로 웹 리서치부터 모바일 앱 자동화까지        │
+│   모든 작업을 자동으로 처리하는 AI 에이전트 시스템 구축"       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**구체적 사용 예시:**
+```
+사용자: "네이버 블로그에 '강남 맛집' 글 작성해줘"
+
+시스템 동작:
+1. 구글에서 "강남 맛집" 검색 (웹 자동화)
+2. 상위 블로그 크롤링 & 요약 (데이터 수집)
+3. 1500자 블로그 글 생성 (AI 작문)
+4. Android 네이버 블로그 앱 실행 (모바일 자동화)
+5. 제목/본문 입력 후 발행 (UI 조작)
+
+✅ 결과: 5분 안에 완성된 블로그 포스트
+```
+
+### 1.2 두 프로젝트의 역할
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│                    전체 아키텍처                               │
+│                                                               │
+│  OpenManus (총괄 관리자 = 두뇌)                               │
+│  ┌────────────────────────────────────────────────┐          │
+│  │  - 사용자 의도 파악                              │          │
+│  │  - 작업 계획 수립                               │          │
+│  │  - 도구 선택 & 조율                             │          │
+│  │  - 결과 통합                                   │          │
+│  └──────────────┬─────────────────────────────────┘          │
+│                 │                                             │
+│       ┌─────────┼──────────┐                                 │
+│       ▼         ▼          ▼                                 │
+│  ┌────────┐ ┌───────┐ ┌─────────┐                           │
+│  │웹 검색 │ │브라우저│ │DroidRun │ (실행 도구들 = 손발)      │
+│  │ 도구  │ │자동화 │ │ 모바일  │                           │
+│  └────────┘ └───────┘ └─────────┘                           │
+│                            │                                  │
+│                            ▼                                  │
+│                   ┌─────────────────┐                        │
+│                   │  Android 기기   │                        │
+│                   │  (실제 작업 수행)│                        │
+│                   └─────────────────┘                        │
+└──────────────────────────────────────────────────────────────┘
+```
+
+#### OpenManus란?
+
+📖 **OpenManus**
+├─ **정의**: LLM 기반의 다목적 AI 에이전트 프레임워크로, 다양한 도구를 통합 관리하는 "총괄 관리자" 역할
+├─ **쉬운 비유**: 건설 현장의 현장 감독. 청사진(사용자 요청)을 보고 어떤 작업자(도구)를 언제 어떻게 투입할지 결정
+├─ **메커니즘**: 
+│  1. 사용자 요청 분석 → 2. 단계별 계획 수립 → 3. 적절한 도구 선택 
+│  → 4. 도구 실행 → 5. 결과 확인 → 6. 다음 단계 결정 (반복)
+└─ **존재 이유**: 단일 도구로는 불가능한 복잡한 작업을 여러 도구를 조율해 해결하기 위해
+
+**핵심 특징:**
+- ✅ MetaGPT 팀이 3시간 만에 프로토타입 제작 (2025년)
+- ✅ 웹 브라우저 자동화 (Playwright 기반)
+- ✅ MCP(Model Context Protocol) 지원
+- ✅ 다양한 LLM 지원 (GPT-4o, Claude, Gemini 등)
+- ✅ 플러그인 방식의 도구 확장
+
+#### DroidRun이란?
+
+📖 **DroidRun**
+├─ **정의**: Android/iOS 기기를 자연어로 제어하는 전문 프레임워크 (모바일 자동화 전문가)
+├─ **쉬운 비유**: 스마트폰을 조작하는 로봇 손가락. "여기 누르고, 저기 스와이프하고"를 LLM이 판단
+├─ **메커니즘**: 
+│  1. 화면 스크린샷 캡처 → 2. UI 요소 분석 (버튼, 입력란 등)
+│  → 3. LLM이 "다음에 뭘 할지" 결정 → 4. ADB/Portal로 실제 조작 실행
+│  → 5. 결과 확인 후 반복
+└─ **존재 이유**: 웹이 아닌 네이티브 모바일 앱(네이버, 인스타 등)은 브라우저 자동화로 제어 불가
+
+**핵심 특징:**
+- ✅ AndroidWorld 벤치마크 43% 성공률 (1위)
+- ✅ LLM agnostic (OpenAI, Anthropic, Gemini, Ollama 모두 지원)
+- ✅ Reflection 기능 (실패에서 학습)
+- ✅ iOS도 지원 (아직 베타)
+- ✅ 실제 기기 & 에뮬레이터 모두 제어 가능
+
+### 1.3 프로젝트 디렉토리 구조
+
+```
+/home/tlswkehd/projects/agent/
+│
+├── OpenManus/                # 메인 AI 에이전트 프레임워크
+│   ├── app/
+│   │   ├── agent/           # 🧠 에이전트 코어 로직
+│   │   │   ├── base.py      #    - 모든 에이전트의 기본 클래스
+│   │   │   ├── react.py     #    - ReAct 패러다임 구현
+│   │   │   ├── toolcall.py  #    - 도구 호출 관리
+│   │   │   └── manus.py     #    - 최종 통합 에이전트
+│   │   │
+│   │   ├── tool/            # 🛠️ 실행 도구들
+│   │   │   ├── base.py      #    - 도구 기본 인터페이스
+│   │   │   ├── browser_use_tool.py  # - 웹 브라우저 자동화
+│   │   │   ├── python_execute.py    # - Python 코드 실행
+│   │   │   └── search/      #    - 검색 엔진 도구들
+│   │   │
+│   │   ├── llm.py           # 💬 LLM 클라이언트 (GPT, Claude 등)
+│   │   ├── config.py        # ⚙️ 설정 관리
+│   │   └── schema.py        # 📊 데이터 구조 정의
+│   │
+│   ├── config/
+│   │   └── config.toml      # 📝 설정 파일 (API 키 등)
+│   │
+│   ├── main.py              # 🚀 진입점
+│   ├── run_mcp.py           # 🔌 MCP 모드 실행
+│   └── requirements.txt     # 📦 의존성 목록
+│
+├── droidrun/                # 모바일 자동화 프레임워크
+│   └── droidrun/
+│       ├── agent/           # 🤖 모바일 에이전트
+│       │   ├── droid/       #    - DroidAgent (메인)
+│       │   ├── manager/     #    - 작업 계획 관리
+│       │   └── executor/    #    - 실제 조작 실행
+│       │
+│       ├── tools/           # 📱 모바일 제어 도구
+│       │   ├── adb.py       #    - ADB 명령어 래퍼
+│       │   ├── portal_client.py # - Portal 앱 통신
+│       │   └── tools.py     #    - UI 조작 도구들
+│       │
+│       └── config/          # ⚙️ 설정
+│
+└── docs/                    # 📄 프로젝트 문서
+    ├── chat-claude-1.md     #    - 초기 분석 문서
+    ├── chat-claude-2.md     #    - 구현 계획 문서
+    └── project-complete-guide.md  # ← 현재 문서
+```
+
+### 1.4 핵심 개념 사전
+
+이 프로젝트를 이해하기 위해 반드시 알아야 할 용어들을 먼저 정리합니다.
+
+#### Agent (에이전트)
+
+📖 **AI Agent (AI 에이전트)**
+├─ **정의**: 목표를 이해하고 스스로 판단하며 행동을 취하는 AI 프로그램
+├─ **쉬운 비유**: 자동 운전 시스템. 목적지만 알려주면 스스로 길을 찾고, 신호를 보고, 핸들을 조작
+├─ **메커니즘**: 
+│  - 입력: 목표 ("강남역으로 가줘")
+│  - 내부 사고: "현재 위치는? 최적 경로는? 교통 상황은?"
+│  - 도구 사용: 내비게이션, 브레이크, 가속
+│  - 실행: 단계적으로 운전
+│  - 평가: "목표 달성했나?" → 반복
+└─ **존재 이유**: 단순 명령 실행이 아닌 "목표 기반 자율 행동"이 필요한 복잡한 작업 해결
+
+**일반 AI와 에이전트의 차이:**
+```
+일반 AI (ChatGPT):
+사용자: "네이버 블로그에 글 써줘"
+AI: "좋습니다! 다음과 같은 글을 작성했습니다: [텍스트 생성]"
+    ↓
+    여기서 끝! 실제로는 아무 일도 안 일어남
+
+AI Agent (OpenManus + DroidRun):
+사용자: "네이버 블로그에 글 써줘"
+Agent: 
+  1. 브라우저 열고 검색 실행 ✓
+  2. 콘텐츠 생성 ✓
+  3. Android 앱 실행 ✓
+  4. 실제로 입력하고 발행 ✓
+    ↓
+    실제로 블로그에 글이 발행됨!
+```
+
+#### ReAct
+
+📖 **ReAct (Reasoning + Acting)**
+├─ **정의**: AI가 "생각(Reasoning)"과 "행동(Acting)"을 번갈아 수행하는 에이전트 패러다임
+├─ **쉬운 비유**: 요리하는 과정
+│  - 생각: "다음엔 양파를 볶아야겠다"
+│  - 행동: 양파를 프라이팬에 넣고 볶음
+│  - 관찰: "양파가 투명해졌네"
+│  - 생각: "이제 고기를 넣을 차례야"
+│  - 행동: 고기 투입
+│  (반복...)
+├─ **메커니즘**: 
+│  ```
+│  Think (사고) → Act (행동) → Observe (관찰)
+│      ↑                                   │
+│      └───────────────────────────────────┘
+│  ```
+└─ **존재 이유**: 한 번에 모든 걸 계획하기 어려운 동적 환경에서 "단계적으로 생각하고 조정"하기 위해
+
+**코드로 보는 ReAct:**
+```python
+# OpenManus의 ReActAgent
+class ReActAgent(BaseAgent):
+    async def step(self):
+        # 1. Think: 현재 상황 분석 & 다음 행동 결정
+        should_act = await self.think()
+        
+        # 2. Act: 결정한 행동 실행
+        if should_act:
+            return await self.act()
+```
+
+#### Tool (도구)
+
+📖 **Tool (도구)**
+├─ **정의**: 에이전트가 실제 세계와 상호작용하기 위해 사용하는 "손과 발" 같은 기능 모듈
+├─ **쉬운 비유**: 의사의 의료 기구
+│  - 청진기: 심장 소리 듣기 (정보 수집)
+│  - 주사기: 약물 주입 (실행)
+│  - X-ray: 내부 촬영 (분석)
+│  - 각 도구는 특정 목적에 특화됨
+├─ **메커니즘**: 
+│  ```
+│  LLM 판단: "이 작업엔 브라우저 도구가 필요해"
+│      ↓
+│  도구 선택: BrowserUseTool
+│      ↓
+│  도구 실행: playwright로 웹사이트 열기
+│      ↓
+│  결과 반환: "웹사이트 내용: ..."
+│  ```
+└─ **존재 이유**: LLM은 "생각"만 할 수 있고 실제 "행동"은 도구가 대신 수행
+
+**OpenManus의 주요 도구:**
+- `BrowserUseTool`: 웹 브라우저 자동화 (Playwright)
+- `PythonExecute`: Python 코드 실행
+- `StrReplaceEditor`: 파일 편집
+- `AskHuman`: 사용자에게 질문
+
+**DroidRun의 주요 도구:**
+- `tap`: 화면 터치
+- `swipe`: 스와이프
+- `input_text`: 텍스트 입력
+- `screenshot`: 화면 캡처
+
+#### MCP (Model Context Protocol)
+
+📖 **MCP (Model Context Protocol)**
+├─ **정의**: AI와 외부 도구/데이터를 연결하는 표준 프로토콜 (Anthropic 개발)
+├─ **쉬운 비유**: USB 규격
+│  - USB 이전: 프린터마다 다른 케이블 필요 → 혼란
+│  - USB 이후: 하나의 표준으로 모든 장치 연결 → 편리
+│  - MCP도 마찬가지로 "AI-도구 연결 표준"
+├─ **메커니즘**: 
+│  ```
+│  AI Agent ←──MCP Protocol──→ 외부 서비스
+│                                ├─ Notion
+│                                ├─ Google Drive
+│                                ├─ Slack
+│                                └─ Database
+│  ```
+│  1. 서비스가 MCP 서버로 기능 공개
+│  2. AI가 MCP 클라이언트로 연결
+│  3. 자연어로 서비스 기능 사용
+└─ **존재 이유**: 각 서비스마다 별도 API 통합 코드 작성 불필요, 한 번의 MCP 연결로 해결
+
+#### LLM (Large Language Model)
+
+📖 **LLM (대규모 언어 모델)**
+├─ **정의**: 대량의 텍스트 데이터로 학습된 거대한 신경망 모델 (GPT-4, Claude 등)
+├─ **쉬운 비유**: 백과사전을 다 읽은 매우 똑똑한 조언자
+│  - 질문하면 답변
+│  - 텍스트 이해 & 생성
+│  - 하지만 스스로는 아무 행동도 못 함 (도구 필요)
+├─ **메커니즘**: 
+│  ```
+│  입력: "강남 맛집 추천해줘"
+│    ↓
+│  [수십억 개의 뉴런 활성화]
+│    ↓
+│  출력: "1. XX식당 - 한식, 가성비 좋음..."
+│  ```
+└─ **존재 이유**: 자연어를 이해하고 맥락에 맞는 판단을 내리기 위해
+
+**프로젝트에서 LLM의 역할:**
+- OpenManus: 작업 계획, 도구 선택, 결과 해석
+- DroidRun: 화면 분석, 다음 조작 결정
+
+---
+
+## 2. OpenManus 완전 분석
+
+> **"3시간 만에 만들어진 범용 AI 에이전트 프레임워크"**
+
+### 2.1 전체 아키텍처
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    OpenManus 구조도                       │
+│                                                          │
+│  사용자 → main.py → Manus 에이전트                        │
+│                        │                                 │
+│                        ├─ 상속 계층                       │
+│                        │  BaseAgent                      │
+│                        │      ↓                          │
+│                        │  ReActAgent                     │
+│                        │      ↓                          │
+│                        │  ToolCallAgent                  │
+│                        │      ↓                          │
+│                        │  Manus                          │
+│                        │                                 │
+│                        ├─ 핵심 컴포넌트                   │
+│                        │  ├─ LLM (대화 & 판단)           │
+│                        │  ├─ Memory (대화 기록)          │
+│                        │  ├─ ToolCollection (도구 모음)  │
+│                        │  └─ MCPClients (외부 연동)      │
+│                        │                                 │
+│                        └─ 실행 사이클                     │
+│                           run() → step() → think() → act()
+└─────────────────────────────────────────────────────────┘
+```
+
+### 2.2 핵심 클래스 상세 분석
+
+#### 2.2.1 BaseAgent - 모든 에이전트의 기반
+
+**파일 위치:** `app/agent/base.py`
+
+📖 **BaseAgent**
+├─ **정의**: 모든 에이전트가 상속받는 추상 기본 클래스. 에이전트의 "생명주기"를 관리
+├─ **쉬운 비유**: 로봇의 기본 프레임
+│  - 전원 ON/OFF (상태 관리)
+│  - 메모리 (기억 장치)
+│  - 센서 입력 처리
+│  - 하지만 "어떻게 움직일지"는 구체적 로봇마다 다름 (추상 메서드)
+├─ **메커니즘**: 
+│  ```python
+│  async def run(self, request):
+│      """에이전트 실행 메인 루프"""
+│      while 현재_단계 < 최대_단계:
+│          결과 = await self.step()  # 추상 메서드 (자식이 구현)
+│          
+│          if 무한_루프_감지():
+│              전략_변경_유도()
+│              
+│          if 작업_완료:
+│              break
+│  ```
+└─ **존재 이유**: 모든 에이전트가 공통으로 필요한 기능(상태, 메모리, 루프)을 한 곳에서 관리
+
+**주요 속성:**
+```python
+class BaseAgent(BaseModel, ABC):
+    # 정체성
+    name: str                    # 에이전트 이름
+    description: str             # 설명
+    
+    # 핵심 프롬프트
+    system_prompt: str           # 시스템 지시사항
+    next_step_prompt: str        # 다음 단계 가이드
+    
+    # 필수 컴포넌트
+    llm: LLM                     # 언어 모델
+    memory: Memory               # 대화 기록 저장소
+    state: AgentState            # 현재 상태 (IDLE, RUNNING, ERROR 등)
+    
+    # 실행 제어
+    max_steps: int = 10          # 최대 반복 횟수
+    current_step: int = 0        # 현재 단계
+    duplicate_threshold: int = 2 # 무한 루프 감지 기준
+```
+
+**주요 메서드:**
+
+1. **`run(request)` - 메인 실행 루프**
+```python
+async def run(self, request: str) -> str:
+    """
+    에이전트를 실행하는 메인 함수
+    
+    동작 과정:
+    1. 사용자 요청을 메모리에 저장
+    2. 최대 단계까지 반복:
+       - step() 실행 (각 에이전트가 구현)
+       - 무한 루프 감지 (같은 응답 반복)
+       - 완료 조건 확인
+    3. 결과 반환
+    """
+    # 사용자 메시지 저장
+    self.update_memory("user", request)
+    
+    # 메인 루프
+    while self.current_step < self.max_steps:
+        self.current_step += 1
+        
+        # 한 단계 실행 (자식 클래스가 구현)
+        result = await self.step()
+        
+        # 무한 루프 감지
+        if self.is_stuck():
+            self.handle_stuck_state()
+            
+    return "작업 완료"
+```
+
+📖 **무한 루프 감지 (Stuck Detection)**
+├─ **정의**: 에이전트가 같은 행동을 반복해 진전이 없는 상태를 자동 감지
+├─ **쉬운 비유**: GPS가 "유턴하세요"만 계속 반복하는 상황
+│  - 감지: "이 말을 3번째 듣는데?"
+│  - 대응: "경로를 다시 찾겠습니다"
+├─ **메커니즘**: 
+│  ```
+│  최근 응답들의 해시값 비교
+│  → 동일한 응답이 threshold(기본 2회) 이상 반복
+│  → "전략을 바꾸세요" 프롬프트 추가
+│  ```
+└─ **존재 이유**: LLM이 막힐 때 무한히 같은 시도를 반복하며 토큰 낭비하는 것 방지
+
+2. **`update_memory(role, content)` - 메모리 관리**
+```python
+def update_memory(self, role, content):
+    """
+    대화 내역을 메모리에 추가
+    
+    role 종류:
+    - "user": 사용자 메시지
+    - "assistant": 에이전트 응답
+    - "system": 시스템 지시사항
+    - "tool": 도구 실행 결과
+    """
+    message = Message.create(role=role, content=content)
+    self.memory.add_message(message)
+```
+
+📖 **Memory (메모리)**
+├─ **정의**: 에이전트와의 모든 대화를 저장하는 "기억 저장소"
+├─ **쉬운 비유**: 대화 녹음기
+│  - 사용자가 뭐라고 했는지
+│  - 내가 뭐라고 답했는지
+│  - 무슨 도구를 썼는지
+│  - 모든 게 시간 순서대로 기록됨
+├─ **메커니즘**: 
+│  ```
+│  [
+│    {"role": "user", "content": "강남 맛집 찾아줘"},
+│    {"role": "assistant", "content": "구글 검색을 시작하겠습니다"},
+│    {"role": "tool", "content": "검색 결과: ..."},
+│    {"role": "assistant", "content": "총 10개 발견했습니다"}
+│  ]
+│  ```
+│  매 LLM 호출 시 전체 메모리를 함께 전달 → 컨텍스트 유지
+└─ **존재 이유**: LLM은 상태를 기억하지 못하므로, 대화 흐름을 유지하려면 이전 내용을 계속 제공해야 함
+
+3. **`step()` - 추상 메서드**
+```python
+@abstractmethod
+async def step(self) -> str:
+    """
+    한 단계를 실행 (자식 클래스가 반드시 구현)
+    
+    BaseAgent는 "언제" 실행할지만 관리
+    "어떻게" 실행할지는 각 에이전트가 결정
+    """
+    pass
+```
+
+#### 2.2.2 ReActAgent - 사고와 행동의 분리
+
+**파일 위치:** `app/agent/react.py`
+
+📖 **ReActAgent**
+├─ **정의**: ReAct 패러다임을 구현한 에이전트 (BaseAgent 상속)
+├─ **쉬운 비유**: 체스 게임
+│  - Think: "상대가 저렇게 나오면... 이 수를 둬야겠다" (사고)
+│  - Act: 실제로 말을 이동 (행동)
+│  - Observe: 상대의 반응 확인 (관찰)
+│  - 다시 Think...
+├─ **메커니즘**: 
+│  ```
+│  step() {
+│      should_act = think()  // 생각: "다음 뭐 할까?"
+│      if should_act:
+│          return act()      // 행동: "결정한 거 실행!"
+│  }
+│  ```
+└─ **존재 이유**: "생각"과 "행동"을 명확히 분리해 에이전트 로직을 단순하고 이해하기 쉽게
+
+**핵심 구조:**
+```python
+class ReActAgent(BaseAgent):
+    @abstractmethod
+    async def think(self) -> bool:
+        """
+        현재 상황 분석 & 다음 행동 결정
+        
+        반환값:
+        - True: 행동이 필요함
+        - False: 행동 불필요 (관찰만 하거나 완료됨)
+        """
+        pass
+    
+    @abstractmethod
+    async def act(self) -> str:
+        """
+        think()에서 결정한 행동을 실제로 실행
+        
+        반환값: 실행 결과 (다음 think의 입력으로 사용)
+        """
+        pass
+    
+    async def step(self) -> str:
+        """
+        BaseAgent의 step() 구현
+        
+        ReAct 사이클 한 번 돌리기:
+        Think → Act → (Observe는 act 결과로 자동)
+        """
+        should_act = await self.think()
+        
+        if not should_act:
+            return "생각만 하고 끝 (행동 불필요)"
+            
+        return await self.act()
+```
+
+**실행 흐름 예시:**
+```
+[Step 1]
+Think: "사용자가 맛집을 찾으라고 했네. 구글 검색 도구를 써야겠다"
+  → should_act = True
+Act: GoogleSearchTool.execute("강남 맛집")
+  → 결과: "10개 블로그 발견"
+
+[Step 2] 
+Think: "검색 결과를 받았으니, 이제 브라우저로 각 블로그를 방문해야겠다"
+  → should_act = True
+Act: BrowserUseTool.execute("첫 번째 블로그 URL")
+  → 결과: "블로그 내용 추출 완료"
+
+[Step 3]
+Think: "충분한 정보를 모았으니, 이제 요약해서 사용자에게 보고"
+  → should_act = False (도구 사용 불필요, 텍스트만 생성)
+```
+
+#### 2.2.3 ToolCallAgent - 도구 사용의 달인
+
+**파일 위치:** `app/agent/toolcall.py`
+
+📖 **ToolCallAgent**
+├─ **정의**: ReActAgent를 확장해 "도구 호출" 기능을 추가한 에이전트
+├─ **쉬운 비유**: 다기능 스위스 아미 나이프
+│  - Think: "이 작업엔 병따개가 필요해" (도구 선택)
+│  - Act: 병따개를 꺼내서 사용 (도구 실행)
+│  - 여러 도구 중 상황에 맞는 것 자동 선택
+├─ **메커니즘**: 
+│  ```
+│  LLM에게 질문: "이 작업에 어떤 도구를 쓸까?"
+│  LLM 응답: {
+│    "tool_calls": [
+│      {"name": "BrowserUseTool", "arguments": {...}}
+│    ]
+│  }
+│  → 도구 실행
+│  → 결과를 다시 LLM에게
+│  ```
+└─ **존재 이유**: LLM은 "생각"만 하고 실제 "행동"은 도구가 해야 하므로, 도구 선택 및 실행 로직 필요
+
+**핵심 속성:**
+```python
+class ToolCallAgent(ReActAgent):
+    # 사용 가능한 도구 목록
+    available_tools: ToolCollection = ToolCollection(
+        CreateChatCompletion(),  # 일반 대화
+        Terminate(),             # 종료
+        # 자식 클래스가 더 추가 가능
+    )
+    
+    # 도구 사용 정책
+    tool_choices: TOOL_CHOICE_TYPE = ToolChoice.AUTO
+    # - AUTO: 필요하면 도구 사용, 아니면 텍스트만
+    # - REQUIRED: 반드시 도구 사용
+    # - NONE: 도구 사용 금지
+    
+    # 특별한 도구들 (실행 시 에이전트 종료)
+    special_tool_names: List[str] = ["Terminate"]
+```
+
+📖 **ToolCollection (도구 모음)**
+├─ **정의**: 여러 도구를 묶어서 관리하는 컨테이너
+├─ **쉬운 비유**: 공구함
+│  - 각 도구에 이름표 붙이기
+│  - "망치 가져와" → 공구함에서 망치 꺼내기
+│  - 새 도구 추가/제거 가능
+├─ **메커니즘**: 
+│  ```python
+│  tools = ToolCollection(
+│      BrowserUseTool(),
+│      PythonExecute()
+│  )
+│  
+│  # 도구 실행
+│  result = await tools.execute(
+│      name="BrowserUseTool",
+│      tool_input={"url": "https://..."}
+│  )
+│  ```
+└─ **존재 이유**: 도구가 많아지면 관리가 복잡해지므로, 통합 관리자 필요
+
+**주요 메서드:**
+
+1. **`think()` - 도구 선택**
+```python
+async def think(self) -> bool:
+    """
+    LLM에게 "어떤 도구를 쓸지" 물어보기
+    
+    동작 과정:
+    1. 현재 메모리(대화 기록)와 사용 가능한 도구 목록을 LLM에게 전달
+    2. LLM이 분석해서 적절한 도구(들) 선택
+    3. tool_calls 리스트에 저장
+    4. 메모리에 assistant 메시지 추가
+    """
+    # LLM에게 도구 선택 요청
+    response = await self.llm.ask_tool(
+        messages=self.memory.messages,  # 지금까지의 대화
+        tools=self.available_tools.to_params(),  # 사용 가능 도구들
+        tool_choice=self.tool_choices  # AUTO/REQUIRED/NONE
+    )
+    
+    # LLM의 선택 저장
+    self.tool_calls = response.tool_calls or []
+    
+    # 메모리에 기록
+    self.memory.add_message(
+        Message.from_tool_calls(
+            content=response.content,
+            tool_calls=self.tool_calls
+        )
+    )
+    
+    # 도구 사용이 필요한가?
+    return bool(self.tool_calls)
+```
+
+**LLM의 도구 선택 예시:**
+```json
+// 입력 (LLM에게)
+{
+  "messages": [
+    {"role": "user", "content": "구글에서 강남 맛집 검색해줘"}
+  ],
+  "tools": [
+    {
+      "name": "GoogleSearchTool",
+      "description": "구글 검색을 수행합니다",
+      "parameters": {"query": "string"}
+    },
+    {
+      "name": "BrowserUseTool",
+      "description": "웹 브라우저를 자동 조작합니다"
+    }
+  ]
+}
+
+// 출력 (LLM이)
+{
+  "content": "구글 검색 도구를 사용하겠습니다",
+  "tool_calls": [
+    {
+      "id": "call_123",
+      "function": {
+        "name": "GoogleSearchTool",
+        "arguments": "{\"query\": \"강남 맛집\"}"
+      }
+    }
+  ]
+}
+```
+
+2. **`act()` - 도구 실행**
+```python
+async def act(self) -> str:
+    """
+    think()에서 선택한 도구들을 실제로 실행
+    
+    동작 과정:
+    1. tool_calls 리스트 순회
+    2. 각 도구 실행
+    3. 결과를 메모리에 tool 메시지로 저장
+    4. 모든 결과 병합해서 반환
+    """
+    results = []
+    
+    for tool_call in self.tool_calls:
+        # 도구 실행
+        result = await self.execute_tool(tool_call)
+        
+        # 결과 저장
+        self.memory.add_message(
+            Message.tool_message(
+                content=result,
+                tool_call_id=tool_call.id,
+                name=tool_call.function.name
+            )
+        )
+        
+        results.append(result)
+    
+    return "\n\n".join(results)
+```
+
+3. **`execute_tool()` - 단일 도구 실행**
+```python
+async def execute_tool(self, command: ToolCall) -> str:
+    """
+    하나의 도구를 안전하게 실행
+    
+    에러 처리:
+    - 도구 이름 오타
+    - 잘못된 파라미터
+    - 실행 중 예외
+    모두 캐치해서 에러 메시지 반환
+    """
+    name = command.function.name
+    
+    # 도구 존재 확인
+    if name not in self.available_tools.tool_map:
+        return f"❌ 오류: '{name}' 도구를 찾을 수 없습니다"
+    
+    try:
+        # JSON 파싱
+        args = json.loads(command.function.arguments)
+        
+        # 도구 실행
+        result = await self.available_tools.execute(
+            name=name,
+            tool_input=args
+        )
+        
+        # 특수 도구 처리 (Terminate 등)
+        if self._is_special_tool(name):
+            self.state = AgentState.FINISHED
+        
+        return f"✅ '{name}' 실행 완료:\n{result}"
+        
+    except json.JSONDecodeError:
+        return f"❌ 오류: JSON 파싱 실패"
+    except Exception as e:
+        return f"❌ 오류: {str(e)}"
+```
+
+**실제 실행 흐름:**
+```
+사용자: "구글에서 강남 맛집 검색하고, 첫 번째 블로그 내용 가져와줘"
+
+[Step 1]
+Think:
+  LLM: "일단 검색부터 하자"
+  → tool_calls = [{"name": "GoogleSearchTool", ...}]
+
+Act:
+  GoogleSearchTool.execute(query="강남 맛집")
+  → 결과: "10개 URL 발견"
+  메모리에 저장: {"role": "tool", "content": "10개 URL..."}
+
+[Step 2]
+Think:
+  LLM: "검색 결과를 받았으니, 첫 번째 URL로 가자"
+  → tool_calls = [{"name": "BrowserUseTool", ...}]
+
+Act:
+  BrowserUseTool.execute(url="https://blog.naver.com/...")
+  → 결과: "블로그 텍스트 추출 완료"
+  메모리에 저장: {"role": "tool", "content": "블로그 내용..."}
+
+[Step 3]
+Think:
+  LLM: "정보 충분. 사용자에게 요약해서 보고"
+  → tool_calls = []  (도구 불필요, 텍스트만)
+
+Act:
+  (실행하지 않음)
+  → LLM이 생성한 텍스트만 반환
+```
+
+#### 2.2.4 Manus - 최종 통합 에이전트
+
+**파일 위치:** `app/agent/manus.py`
+
+📖 **Manus**
+├─ **정의**: ToolCallAgent를 확장한 최종 완성형 범용 에이전트 (OpenManus의 핵심)
+├─ **쉬운 비유**: 오케스트라 지휘자
+│  - 여러 악기(도구)를 조율
+│  - 악보(시스템 프롬프트)대로 연주 진행
+│  - 즉흥 연주(동적 상황 대응)도 가능
+│  - MCP로 새 악기(외부 서비스)도 추가 가능
+├─ **메커니즘**: 
+│  ```
+│  Manus = ToolCallAgent
+│          + BrowserUseTool (웹 자동화)
+│          + PythonExecute (코드 실행)
+│          + StrReplaceEditor (파일 편집)
+│          + MCPClients (외부 서비스)
+│          + 브라우저 컨텍스트 관리
+│  ```
+└─ **존재 이유**: 실제 사용할 수 있는 "완제품" 에이전트 (ToolCallAgent는 추상적)
+
+**핵심 속성:**
+```python
+class Manus(ToolCallAgent):
+    name: str = "Manus"
+    description: str = "다양한 도구를 사용해 복잡한 작업을 수행하는 범용 에이전트"
+    
+    # 시스템 프롬프트 (에이전트의 "성격"과 "역할" 정의)
+    system_prompt: str = """
+    당신은 Manus입니다. 
+    사용자의 요청을 이해하고 적절한 도구를 선택해 
+    작업을 완수하는 AI 에이전트입니다.
+    
+    작업 공간: {workspace_root}
+    
+    원칙:
+    1. 단계별로 생각하고 행동하세요
+    2. 도구 사용 결과를 확인하세요
+    3. 에러 발생 시 다른 방법을 시도하세요
+    4. 최종 결과를 명확히 보고하세요
+    """
+    
+    # 기본 도구들
+    available_tools: ToolCollection = ToolCollection(
+        PythonExecute(),        # Python 코드 실행
+        BrowserUseTool(),       # 웹 브라우저 자동화
+        StrReplaceEditor(),     # 파일 편집
+        AskHuman(),            # 사용자에게 질문
+        Terminate(),           # 작업 종료
+    )
+    
+    # MCP 클라이언트 (외부 서비스 연동)
+    mcp_clients: MCPClients = MCPClients()
+    
+    # 브라우저 컨텍스트 헬퍼
+    browser_context_helper: BrowserContextHelper
+    
+    # 실행 제어
+    max_steps: int = 20
+    max_observe: int = 10000  # 도구 결과 최대 글자 수
+```
+
+**주요 기능:**
+
+1. **MCP 서버 연결**
+```python
+async def initialize_mcp_servers(self):
+    """
+    설정 파일에 정의된 MCP 서버들에 자동 연결
+    
+    config.toml 예시:
+    [mcp_config.servers.notion]
+    type = "sse"  # 또는 "stdio"
+    url = "https://mcp.notion.com"
+    
+    [mcp_config.servers.filesystem]
+    type = "stdio"
+    command = "mcp-server-filesystem"
+    args = ["/workspace"]
+    """
+    for server_id, server_config in config.mcp_config.servers.items():
+        if server_config.type == "sse":
+            # HTTP로 통신하는 MCP 서버
+            await self.connect_mcp_server(
+                server_url=server_config.url,
+                server_id=server_id
+            )
+        elif server_config.type == "stdio":
+            # 프로세스로 실행되는 MCP 서버
+            await self.connect_mcp_server(
+                server_url=server_config.command,
+                server_id=server_id,
+                use_stdio=True,
+                stdio_args=server_config.args
+            )
+```
+
+📖 **MCP SSE vs STDIO**
+├─ **정의**: MCP 서버와 통신하는 두 가지 방법
+├─ **SSE (Server-Sent Events)**: 
+│  - HTTP 기반 통신
+│  - 원격 서버와 연결
+│  - 예: 클라우드에서 실행되는 Notion MCP 서버
+├─ **STDIO (Standard Input/Output)**:
+│  - 로컬 프로세스 실행
+│  - 파이프로 통신
+│  - 예: 로컬 파일시스템 접근 MCP 서버
+└─ **선택 기준**: 
+   - 원격 서비스 → SSE
+   - 로컬 기능 → STDIO
+
+2. **브라우저 컨텍스트 관리**
+```python
+async def think(self) -> bool:
+    """
+    브라우저 사용 중이면 특별한 프롬프트 제공
+    
+    일반 프롬프트:
+    "다음에 무엇을 할지 결정하세요"
+    
+    브라우저 사용 중 프롬프트:
+    "현재 브라우저 화면:
+     - URL: https://...
+     - 제목: ...
+     - 주요 요소: [버튼1], [링크2], ...
+     다음 행동을 결정하세요"
+    """
+    # 최근 3개 메시지 확인
+    recent_messages = self.memory.messages[-3:]
+    
+    # BrowserUseTool 사용 중인가?
+    browser_in_use = any(
+        tool_call.function.name == "BrowserUseTool"
+        for msg in recent_messages
+        if msg.tool_calls
+        for tool_call in msg.tool_calls
+    )
+    
+    if browser_in_use:
+        # 브라우저 상태 정보 추가
+        self.next_step_prompt = await self.browser_context_helper.format_next_step_prompt()
+    
+    # 기존 think() 실행
+    return await super().think()
+```
+
+3. **리소스 정리**
+```python
+async def cleanup(self):
+    """
+    에이전트 종료 시 자원 정리
+    
+    - 브라우저 닫기
+    - MCP 서버 연결 해제
+    - 열린 파일 닫기
+    """
+    # 브라우저 정리
+    if self.browser_context_helper:
+        await self.browser_context_helper.cleanup_browser()
+    
+    # MCP 서버 연결 해제
+    await self.disconnect_mcp_server()
+```
+
+**Manus 사용 예시:**
+```python
+# main.py
+async def main():
+    # Manus 생성 (MCP 서버 자동 연결)
+    agent = await Manus.create()
+    
+    # 사용자 요청 실행
+    await agent.run("네이버 블로그에 강남 맛집 글 작성해줘")
+    
+    # 자원 정리
+    await agent.cleanup()
+```
+
+**실행 흐름 전체 예시:**
+```
+사용자: "Python으로 CSV 파일 분석해서 그래프 그려줘"
+
+[Manus 초기화]
+- LLM 클라이언트 생성 (GPT-4o)
+- 도구 등록: Python, Browser, Editor, ...
+- MCP 서버 연결: filesystem, notion, ...
+- ✅ 준비 완료
+
+[Step 1]
+Think (Manus):
+  "Python 코드를 실행해야겠다"
+  → tool_calls = [{"name": "PythonExecute", ...}]
+
+Act (Manus):
+  PythonExecute.execute(code="""
+    import pandas as pd
+    df = pd.read_csv('data.csv')
+    print(df.describe())
+  """)
+  → 결과: "통계 요약 출력"
+
+[Step 2]
+Think (Manus):
+  "이제 그래프를 그리는 코드를 실행"
+  → tool_calls = [{"name": "PythonExecute", ...}]
+
+Act (Manus):
+  PythonExecute.execute(code="""
+    import matplotlib.pyplot as plt
+    df.plot()
+    plt.savefig('graph.png')
+  """)
+  → 결과: "그래프 저장 완료"
+
+[Step 3]
+Think (Manus):
+  "완료! 사용자에게 보고"
+  → tool_calls = [{"name": "Terminate", ...}]
+
+Act (Manus):
+  Terminate.execute(reason="CSV 분석 및 그래프 생성 완료")
+  → Manus 상태 = FINISHED
+
+[자원 정리]
+- cleanup() 자동 실행
+- 브라우저 닫기
+- MCP 연결 해제
+```
+
+### 2.3 도구(Tool) 시스템 상세
+
+OpenManus의 도구는 에이전트가 실제 세계와 상호작용하는 "손과 발"입니다.
+
+#### 2.3.1 BaseTool - 도구의 기본 인터페이스
+
+**파일 위치:** `app/tool/base.py`
+
+```python
+class BaseTool(BaseModel, ABC):
+    """
+    모든 도구가 상속받는 기본 클래스
+    
+    도구 작성 규칙:
+    1. name: 도구 이름 (고유해야 함)
+    2. description: LLM이 읽고 이해할 수 있는 설명
+    3. parameters: JSON Schema 형식의 파라미터 정의
+    4. execute(): 실제 동작 구현
+    """
+    name: str
+    description: str
+    parameters: Optional[dict] = None
+    
+    @abstractmethod
+    async def execute(self, **kwargs) -> ToolResult:
+        """
+        도구의 실제 동작을 구현
+        
+        kwargs: LLM이 선택한 파라미터들
+        반환: ToolResult (output, error, base64_image 등)
+        """
+        pass
+    
+    def to_param(self) -> dict:
+        """
+        LLM에게 전달할 도구 정의 생성
+        
+        OpenAI Function Calling 형식:
+        {
+          "type": "function",
+          "function": {
+            "name": "도구이름",
+            "description": "도구 설명",
+            "parameters": {...}
+          }
+        }
+        """
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters,
+            },
+        }
+```
+
+📖 **ToolResult**
+├─ **정의**: 도구 실행 결과를 담는 표준 컨테이너
+├─ **쉬운 비유**: 택배 상자
+│  - output: 정상 결과물 (본문)
+│  - error: 에러 메시지 (문제 발생 시)
+│  - base64_image: 스크린샷 등 이미지 (선택)
+│  - system: 시스템 메시지 (선택)
+├─ **메커니즘**: 
+│  ```python
+│  # 성공 케이스
+│  return ToolResult(output="작업 완료")
+│  
+│  # 실패 케이스
+│  return ToolResult(error="파일을 찾을 수 없습니다")
+│  
+│  # 이미지 포함
+│  return ToolResult(
+│      output="스크린샷 캡처",
+│      base64_image="iVBORw0KGgoAAAANSUhEUg..."
+│  )
+│  ```
+└─ **존재 이유**: 도구마다 다른 결과 형식을 통일해서 에이전트가 쉽게 처리
+
+#### 2.3.2 주요 내장 도구들
+
+**1. BrowserUseTool - 웹 브라우저 자동화**
+
+**파일 위치:** `app/tool/browser_use_tool.py`
+
+```python
+class BrowserUseTool(BaseTool):
+    name = "browser_use"
+    description = """
+    웹 브라우저를 자동으로 조작합니다.
+    
+    할 수 있는 일:
+    - 웹사이트 방문
+    - 버튼 클릭
+    - 텍스트 입력
+    - 스크롤
+    - 콘텐츠 추출
+    - 스크린샷
+    
+    사용 예:
+    - 구글 검색
+    - 온라인 쇼핑
+    - 정보 수집
+    - 웹 애플리케이션 테스트
+    """
+    
+    parameters = {
+        "type": "object",
+        "properties": {
+            "task": {
+                "type": "string",
+                "description": "브라우저로 수행할 작업 (자연어)"
+            }
+        },
+        "required": ["task"]
+    }
+    
+    async def execute(self, task: str) -> ToolResult:
+        """
+        browser-use 라이브러리로 브라우저 제어
+        
+        동작 방식:
+        1. LLM이 화면을 "보고" (스크린샷)
+        2. 다음 행동 결정 ("여기 클릭", "저기 입력")
+        3. playwright로 실제 실행
+        4. 결과 확인 후 반복
+        """
+        from browser_use import Agent as BrowserAgent
+        
+        # Browser-Use 에이전트 생성
+        browser_agent = BrowserAgent(
+            task=task,
+            llm=self.llm  # Manus의 LLM 공유
+        )
+        
+        # 실행
+        result = await browser_agent.run()
+        
+        return ToolResult(output=str(result))
+```
+
+📖 **browser-use 라이브러리**
+├─ **정의**: LLM이 직접 웹 브라우저를 "보고" 조작하는 라이브러리
+├─ **쉬운 비유**: 시력이 있는 로봇 비서
+│  - 일반 자동화: "버튼의 ID는 #submit이야" (개발자가 지정)
+│  - browser-use: "이 화면에서 제출 버튼 찾아서 눌러" (LLM이 판단)
+├─ **메커니즘**: 
+│  ```
+│  1. 스크린샷 캡처 → 2. LLM에게 "뭐가 보여?" 질문
+│  → 3. LLM: "로그인 버튼이 (300, 400) 좌표에 있네"
+│  → 4. Playwright로 클릭 → 5. 다시 스크린샷... (반복)
+│  ```
+└─ **존재 이유**: DOM 셀렉터 없이도 "사람처럼" 웹사이트 조작 가능
+
+**2. PythonExecute - Python 코드 실행**
+
+**파일 위치:** `app/tool/python_execute.py`
+
+```python
+class PythonExecute(BaseTool):
+    name = "python_execute"
+    description = """
+    Python 코드를 실행합니다.
+    
+    할 수 있는 일:
+    - 데이터 분석 (pandas, numpy)
+    - 계산 및 통계
+    - 파일 읽기/쓰기
+    - API 호출
+    - 그래프 생성 (matplotlib)
+    
+    제한사항:
+    - 위험한 코드 (os.system 등) 제한
+    - 샌드박스 환경에서 실행
+    - 타임아웃 설정 가능
+    """
+    
+    parameters = {
+        "type": "object",
+        "properties": {
+            "code": {
+                "type": "string",
+                "description": "실행할 Python 코드"
+            }
+        },
+        "required": ["code"]
+    }
+    
+    async def execute(self, code: str) -> ToolResult:
+        """
+        Python 코드를 안전하게 실행
+        
+        보안 조치:
+        - 샌드박스 환경 (Docker 또는 subprocess)
+        - 금지 명령어 필터링
+        - 실행 시간 제한
+        - 메모리 제한
+        """
+        try:
+            # 샌드박스에서 실행
+            result = await SANDBOX_CLIENT.execute_python(code)
+            
+            return ToolResult(output=result.stdout)
+        except TimeoutError:
+            return ToolResult(error="실행 시간 초과 (30초)")
+        except Exception as e:
+            return ToolResult(error=f"실행 오류: {str(e)}")
+```
+
+**사용 예시:**
+```python
+# Manus가 자동으로 생성한 코드
+사용자: "1부터 100까지 합계 구해줘"
+
+Manus → PythonExecute:
+code = """
+result = sum(range(1, 101))
+print(f"1부터 100까지의 합: {result}")
+"""
+
+실행 결과:
+"1부터 100까지의 합: 5050"
+```
+
+**3. StrReplaceEditor - 파일 편집**
+
+**파일 위치:** `app/tool/str_replace_editor.py`
+
+```python
+class StrReplaceEditor(BaseTool):
+    name = "str_replace_editor"
+    description = """
+    파일 내용을 검색하고 수정합니다.
+    
+    할 수 있는 일:
+    - 파일 읽기
+    - 텍스트 검색 및 치환
+    - 새 파일 생성
+    - 파일 삽입/삭제
+    
+    사용 예:
+    - 버그 수정
+    - 설정 변경
+    - 코드 리팩토링
+    """
+    
+    parameters = {
+        "type": "object",
+        "properties": {
+            "command": {
+                "type": "string",
+                "enum": ["view", "create", "str_replace", "insert"],
+                "description": "수행할 작업"
+            },
+            "path": {
+                "type": "string",
+                "description": "파일 경로"
+            },
+            "old_str": {
+                "type": "string",
+                "description": "검색할 문자열 (str_replace)"
+            },
+            "new_str": {
+                "type": "string",
+                "description": "대체할 문자열 (str_replace)"
+            }
+        },
+        "required": ["command", "path"]
+    }
+    
+    async def execute(
+        self, 
+        command: str,
+        path: str,
+        old_str: str = "",
+        new_str: str = ""
+    ) -> ToolResult:
+        """
+        파일 작업 실행
+        
+        안전 조치:
+        - workspace_root 밖의 파일 접근 금지
+        - 백업 생성
+        - 변경 내역 로깅
+        """
+        # 경로 검증
+        full_path = (config.workspace_root / path).resolve()
+        if not str(full_path).startswith(str(config.workspace_root)):
+            return ToolResult(error="작업 공간 밖의 파일 접근 금지")
+        
+        if command == "view":
+            # 파일 읽기
+            content = full_path.read_text()
+            return ToolResult(output=content)
+            
+        elif command == "str_replace":
+            # 문자열 치환
+            content = full_path.read_text()
+            new_content = content.replace(old_str, new_str)
+            full_path.write_text(new_content)
+            return ToolResult(output="파일 수정 완료")
+        
+        # ...
+```
+
+**4. AskHuman - 사용자에게 질문**
+
+```python
+class AskHuman(BaseTool):
+    name = "ask_human"
+    description = """
+    불확실하거나 중요한 결정이 필요할 때 사용자에게 질문합니다.
+    
+    사용 시기:
+    - 여러 선택지 중 선택 필요
+    - 민감한 정보 확인
+    - 불명확한 요구사항 명확화
+    
+    예:
+    "파일을 삭제하시겠습니까? (y/n)"
+    """
+    
+    async def execute(self, question: str) -> ToolResult:
+        """터미널에 질문 출력하고 답변 대기"""
+        answer = input(f"\n🤔 {question}\n답변: ")
+        return ToolResult(output=answer)
+```
+
+### 2.4 LLM 클라이언트
+
+**파일 위치:** `app/llm.py`
+
+📖 **LLM 클래스**
+├─ **정의**: 다양한 LLM 제공자(OpenAI, Anthropic 등)를 통합하는 클라이언트
+├─ **쉬운 비유**: 번역기 허브
+│  - 영어 → 한국어 번역기 (OpenAI)
+│  - 일본어 → 한국어 번역기 (Claude)
+│  - 중국어 → 한국어 번역기 (Gemini)
+│  - 같은 인터페이스로 다 사용 가능
+├─ **메커니즘**: 
+│  ```
+│  config.toml에서 model 설정
+│  → LLM 클래스가 적절한 API 선택
+│  → 통일된 인터페이스로 호출
+│  ```
+└─ **존재 이유**: 에이전트 코드 변경 없이 LLM 제공자 교체 가능
+
+**주요 메서드:**
+
+```python
+class LLM:
+    def __init__(self, model: str, api_key: str):
+        """
+        LLM 클라이언트 초기화
+        
+        지원 모델:
+        - GPT-4o, GPT-4-turbo (OpenAI)
+        - Claude-3.5-Sonnet, Claude-3-Opus (Anthropic)
+        - Gemini-2.0-Flash (Google)
+        - DeepSeek (기타)
+        """
+        self.model = model
+        self.client = self._create_client(api_key)
+    
+    async def ask_tool(
+        self,
+        messages: List[Message],
+        tools: List[dict],
+        tool_choice: ToolChoice = ToolChoice.AUTO
+    ) -> ChatCompletionMessage:
+        """
+        도구 선택이 필요한 대화
+        
+        OpenAI Function Calling 형식 사용:
+        - messages: 대화 히스토리
+        - tools: 사용 가능한 도구 목록
+        - tool_choice: AUTO/REQUIRED/NONE
+        
+        반환: LLM의 응답 + 선택한 도구들
+        """
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[msg.to_dict() for msg in messages],
+            tools=tools,
+            tool_choice=self._convert_tool_choice(tool_choice)
+        )
+        
+        return response.choices[0].message
+    
+    def count_tokens(self, messages: List[Message]) -> int:
+        """
+        토큰 수 계산 (비용 추정용)
+        
+        토큰 = LLM이 처리하는 "단위"
+        - 영어: 단어당 약 1-2 토큰
+        - 한국어: 글자당 약 2-3 토큰
+        - 이미지: 해상도에 따라 85-1024 토큰
+        """
+        tokenizer = tiktoken.encoding_for_model(self.model)
+        
+        total = 0
+        for msg in messages:
+            # 텍스트 토큰
+            total += len(tokenizer.encode(msg.content))
+            
+            # 이미지 토큰 (있다면)
+            if msg.base64_image:
+                total += self._calculate_image_tokens(msg.base64_image)
+        
+        return total
+```
+
+**토큰 제한 처리:**
+```python
+async def ask_tool(self, messages, tools, tool_choice):
+    """
+    토큰 제한 초과 시 자동 처리
+    
+    1. 현재 토큰 수 계산
+    2. 제한 초과 시:
+       - 오래된 메시지 제거
+       - 긴 도구 결과 요약
+       - 이미지 해상도 낮춤
+    3. 재시도
+    """
+    token_count = self.count_tokens(messages)
+    
+    if token_count > self.max_tokens:
+        # 메모리 압축
+        messages = self._compress_memory(messages)
+    
+    try:
+        return await self._do_api_call(messages, tools, tool_choice)
+    except TokenLimitExceeded:
+        # 더 압축
+        messages = self._aggressive_compress(messages)
+        return await self._do_api_call(messages, tools, tool_choice)
+```
+
+### 2.5 완전한 실행 흐름 종합
+
+이제 OpenManus의 모든 구성 요소를 이해했으니, 전체 실행 흐름을 종합해봅시다.
+
+**예제 시나리오:** "네이버 블로그에 강남 맛집 글 작성"
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  사용자: "네이버 블로그에 강남 맛집 글 작성해줘"               │
+└──────────────────┬──────────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│  main.py                                                     │
+│  - Manus.create() 호출                                       │
+│  - agent.run(prompt) 호출                                    │
+└──────────────────┬──────────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│  Manus.create()                                              │
+│  1. LLM 클라이언트 생성 (GPT-4o)                             │
+│  2. 도구 등록 (Browser, Python, Editor, ...)                 │
+│  3. MCP 서버 연결 (filesystem, notion, ...)                  │
+│  4. 브라우저 헬퍼 초기화                                      │
+│  ✅ Manus 인스턴스 준비 완료                                  │
+└──────────────────┬──────────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│  BaseAgent.run()                                             │
+│  - 사용자 메시지를 메모리에 추가                              │
+│  - 메인 루프 시작 (max_steps=20)                             │
+└──────────────────┬──────────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│  [Step 1] ReActAgent.step()                                  │
+│                                                              │
+│  ┌─ Think (ToolCallAgent.think()) ──────────────────┐       │
+│  │  1. 메모리 확인:                                  │       │
+│  │     - user: "네이버 블로그에 강남 맛집 글 작성"    │       │
+│  │                                                   │       │
+│  │  2. LLM에게 질문:                                 │       │
+│  │     messages: [위의 메모리]                       │       │
+│  │     tools: [Browser, Python, Editor, ...]        │       │
+│  │     tool_choice: AUTO                             │       │
+│  │                                                   │       │
+│  │  3. LLM 응답:                                     │       │
+│  │     content: "구글에서 강남 맛집을 검색하겠습니다" │       │
+│  │     tool_calls: [                                 │       │
+│  │       {                                           │       │
+│  │         name: "browser_use",                      │       │
+│  │         arguments: {                              │       │
+│  │           task: "구글에서 강남 맛집 검색"          │       │
+│  │         }                                         │       │
+│  │       }                                           │       │
+│  │     ]                                             │       │
+│  │                                                   │       │
+│  │  4. 메모리에 assistant 메시지 추가                │       │
+│  │  5. return True (도구 사용 필요)                  │       │
+│  └───────────────────────────────────────────────────┘       │
+│                                                              │
+│  ┌─ Act (ToolCallAgent.act()) ──────────────────────┐       │
+│  │  1. execute_tool() 호출:                          │       │
+│  │     - BrowserUseTool.execute(                     │       │
+│  │         task="구글에서 강남 맛집 검색"             │       │
+│  │       )                                           │       │
+│  │                                                   │       │
+│  │  2. Browser-Use 내부 동작:                        │       │
+│  │     a. 브라우저 시작 (Playwright)                 │       │
+│  │     b. google.com 접속                            │       │
+│  │     c. 스크린샷 → LLM에게 "뭐가 보여?"            │       │
+│  │     d. LLM: "검색창이 (500,300)에 있네"           │       │
+│  │     e. 클릭 → "강남 맛집" 입력 → 엔터             │       │
+│  │     f. 결과 페이지 도달                           │       │
+│  │     g. 상위 5개 링크 추출                         │       │
+│  │                                                   │       │
+│  │  3. 결과 반환:                                    │       │
+│  │     "검색 완료. 5개 블로그 발견:                  │       │
+│  │      1. https://blog.naver.com/xxx..."           │       │
+│  │                                                   │       │
+│  │  4. 메모리에 tool 메시지 추가                     │       │
+│  └───────────────────────────────────────────────────┘       │
+└─────────────────────────────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│  [Step 2~5] (블로그 크롤링 & 콘텐츠 생성)                     │
+│  - 여러 단계 반복...                                         │
+│  - 최종적으로 "강남 맛집" 글 완성                            │
+└─────────────────────────────────────────────────────────────┘
+                   │
+                   ▼
+┌─────────────────────────────────────────────────────────────┐
+│  [완료] State = FINISHED                                     │
+│  - cleanup() 자동 호출                                       │
+│  - 사용자에게 결과 반환                                       │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. DroidRun 완전 분석
+
+> **"Android/iOS 기기를 자연어로 제어하는 전문 프레임워크"**
+
+### 3.1 전체 아키텍처
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                    DroidRun 구조도                        │
+│                                                          │
+│  사용자 → CLI/API → DroidAgent                           │
+│                        │                                 │
+│                        ├─ 주요 컴포넌트                   │
+│                        │  ├─ ManagerAgent (계획 수립)    │
+│                        │  ├─ ExecutorAgent (실행)        │
+│                        │  └─ Tools (ADB, Portal)         │
+│                        │                                 │
+│                        ├─ 핵심 메커니즘                   │
+│                        │  ├─ UI hierarchy 분석           │
+│                        │  ├─ 스크린샷 캡처 & 분석         │
+│                        │  ├─ LLM 기반 판단               │
+│                        │  └─ Reflection (실패 학습)      │
+│                        │                                 │
+│                        └─ 실행 사이클                     │
+│                           Manager → Executor → 결과 확인
+└─────────────────────────────────────────────────────────┘
+```
+
+📖 **DroidRun의 독특한 점**
+├─ **정의**: 모바일 특화 AI 에이전트 (OpenManus는 범용, DroidRun은 모바일 전문)
+├─ **쉬운 비유**: 전문 외과의사 vs 종합병원 의사
+│  - OpenManus: 여러 분야를 다루는 종합병원 의사 (범용)
+│  - DroidRun: 한 분야의 전문가 (모바일 자동화)
+├─ **메커니즘**: 
+│  ```
+│  1. Manager: "앱 열고, 버튼 클릭하고..." (전략 수립)
+│  2. Executor: 실제로 ADB 명령 실행
+│  3. Reflection: "실패했네? 왜 실패했지?" (학습)
+│  4. 재시도: 개선된 전략으로 다시 시도
+│  ```
+└─ **존재 이유**: 모바일 앱은 DOM이 없고, 화면이 작고, 터치 기반이라 브라우저와 완전히 다름
+
+### 3.2 핵심 클래스 상세 분석
+
+#### 3.2.1 DroidAgent - 메인 에이전트
+
+**파일 위치:** `droidrun/agent/droid/droid_agent.py`
+
+```python
+class DroidAgent:
+    """
+    Android/iOS 기기를 제어하는 메인 에이전트
+    
+    OpenManus의 Manus와 비슷한 역할이지만,
+    모바일 환경에 특화된 기능 제공
+    """
+    
+    def __init__(
+        self,
+        goal: str,                    # 목표 (자연어)
+        llm_provider: str = "anthropic",  # LLM 제공자
+        llm_model: str = "claude-3-5-sonnet",
+        device_serial: str = None,    # 기기 시리얼
+        max_steps: int = 30           # 최대 단계
+    ):
+        """
+        에이전트 초기화
+        
+        OpenManus와의 차이점:
+        - MCP 대신 ADB/Portal 사용
+        - 브라우저 대신 모바일 화면
+        - DOM 대신 UI hierarchy
+        """
+        self.goal = goal
+        self.llm_provider = llm_provider
+        self.llm_model = llm_model
+        self.max_steps = max_steps
+        
+        # 모바일 제어 도구
+        self.adb_tools = AdbTools(device_serial)
+        
+        # 하위 에이전트
+        self.manager = ManagerAgent(llm_provider, llm_model)
+        self.executor = ExecutorAgent(llm_provider, llm_model)
+        
+        # 상태
+        self.state = DroidAgentState()
+    
+    async def run(self) -> dict:
+        """
+        목표 달성까지 실행
+        
+        실행 흐름:
+        1. Manager가 전체 계획 수립
+        2. 각 단계마다:
+           - Executor가 현재 화면 분석
+           - 다음 액션 결정
+           - ADB로 실행
+           - 결과 확인
+        3. Reflection (실패 시)
+        4. 목표 달성 or 최대 단계 도달
+        """
+        # 초기 화면 분석
+        screenshot = self.adb_tools.screenshot()
+        ui_hierarchy = self.adb_tools.dump_ui_hierarchy()
+        
+        # Manager: 전체 계획 수립
+        plan = await self.manager.create_plan(
+            goal=self.goal,
+            current_screen=screenshot,
+            ui_hierarchy=ui_hierarchy
+        )
+        
+        # 메인 루프
+        for step in range(self.max_steps):
+            # 현재 화면 상태
+            screenshot = self.adb_tools.screenshot()
+            ui_hierarchy = self.adb_tools.dump_ui_hierarchy()
+            
+            # Executor: 다음 액션 결정
+            action = await self.executor.decide_next_action(
+                current_goal=plan.current_subgoal,
+                screenshot=screenshot,
+                ui_hierarchy=ui_hierarchy,
+                history=self.state.history
+            )
+            
+            # 액션 실행
+            result = await self._execute_action(action)
+            
+            # 상태 업데이트
+            self.state.add_step(action, result)
+            
+            # 목표 달성 확인
+            if await self.manager.is_goal_achieved(
+                goal=self.goal,
+                current_state=self.state
+            ):
+                return {
+                    "success": True,
+                    "steps": step + 1,
+                    "trajectory": self.state.history
+                }
+            
+            # 실패 감지 & Reflection
+            if self._is_stuck():
+                reflection = await self._reflect_on_failure()
+                plan = await self.manager.replan(
+                    current_plan=plan,
+                    failure_reason=reflection
+                )
+        
+        # 최대 단계 도달
+        return {
+            "success": False,
+            "steps": self.max_steps,
+            "trajectory": self.state.history
+        }
+```
+
+📖 **Reflection (자기 반성)**
+├─ **정의**: 에이전트가 실패했을 때 "왜 실패했는지" 분석하고 개선하는 메커니즘
+├─ **쉬운 비유**: 시험 오답 노트
+│  - 문제 틀림 → "왜 틀렸지?" 분석
+│  - 개념 부족? 실수? → 원인 파악
+│  - 다음엔 안 틀림 → 학습 효과
+├─ **메커니즘**: 
+│  ```
+│  실패 감지: "3번이나 같은 버튼을 못 찾네?"
+│  → LLM에게: "왜 실패했을까? 최근 시도들을 보면..."
+│  → LLM: "아, 스크롤을 먼저 해야 버튼이 보이는구나"
+│  → 계획 수정: "스크롤 → 버튼 찾기"
+│  ```
+└─ **존재 이유**: 단순 반복이 아닌 "학습하는" 에이전트를 만들기 위해
+
+**Reflection 구현:**
+```python
+async def _reflect_on_failure(self) -> str:
+    """
+    최근 실패들을 분석해서 개선 방향 제시
+    
+    DroidRun의 핵심 기능 (OpenManus에는 없음)
+    """
+    # 최근 5개 시도 추출
+    recent_attempts = self.state.history[-5:]
+    
+    # LLM에게 분석 요청
+    reflection_prompt = f"""
+    목표: {self.goal}
+    
+    최근 시도들:
+    {self._format_attempts(recent_attempts)}
+    
+    문제점:
+    - 같은 실패가 반복되고 있습니다
+    - 목표에 가까워지지 않고 있습니다
+    
+    다음 질문에 답하세요:
+    1. 왜 실패했나요?
+    2. 무엇을 놓치고 있나요?
+    3. 다음엔 어떻게 해야 하나요?
+    
+    구체적으로 분석하세요.
+    """
+    
+    reflection = await self.llm.ask(reflection_prompt)
+    
+    return reflection
+```
+
+#### 3.2.2 ManagerAgent - 전략가
+
+**파일 위치:** `droidrun/agent/manager/`
+
+📖 **ManagerAgent**
+├─ **정의**: 전체 작업을 단계별 계획으로 분해하는 "전략가" 에이전트
+├─ **쉬운 비유**: 프로젝트 매니저
+│  - 큰 프로젝트를 작은 작업으로 분해
+│  - "먼저 이거, 그 다음 저거, 마지막으로..."
+│  - 진행 상황 모니터링
+│  - 계획 조정
+├─ **메커니즘**: 
+│  ```
+│  목표: "네이버 블로그 글쓰기"
+│    ↓
+│  계획 수립:
+│  1. 네이버 블로그 앱 실행
+│  2. 글쓰기 버튼 찾아서 클릭
+│  3. 제목 입력란에 제목 입력
+│  4. 본문 입력란에 본문 입력
+│  5. 발행 버튼 클릭
+│  ```
+└─ **존재 이유**: 복잡한 작업을 한 번에 실행하기 어려우므로 단계별로 분해
+
+**주요 메서드:**
+
+```python
+class ManagerAgent:
+    async def create_plan(
+        self,
+        goal: str,
+        current_screen: bytes,
+        ui_hierarchy: str
+    ) -> Plan:
+        """
+        목표를 단계별 계획으로 분해
+        
+        LLM에게 요청:
+        - 목표 이해
+        - 현재 화면 분석
+        - 단계별 작업 리스트 생성
+        """
+        prompt = f"""
+        목표: {goal}
+        
+        현재 화면 상태:
+        {self._analyze_screen(current_screen, ui_hierarchy)}
+        
+        이 목표를 달성하기 위한 단계별 계획을 세우세요.
+        각 단계는 구체적이고 실행 가능해야 합니다.
+        
+        응답 형식:
+        <thought>전체 전략 생각</thought>
+        <plan>
+        1. 첫 번째 단계
+        2. 두 번째 단계
+        3. ...
+        </plan>
+        """
+        
+        response = await self.llm.ask(prompt, image=current_screen)
+        
+        # XML 파싱
+        parsed = parse_manager_response(response)
+        
+        return Plan(
+            goal=goal,
+            steps=parsed["plan"].split("\n"),
+            current_step=0
+        )
+    
+    async def is_goal_achieved(
+        self,
+        goal: str,
+        current_state: DroidAgentState
+    ) -> bool:
+        """
+        목표가 달성되었는지 LLM에게 확인
+        
+        단순 규칙이 아닌 LLM의 "이해"를 사용
+        → 더 유연한 판단 가능
+        """
+        prompt = f"""
+        목표: {goal}
+        
+        지금까지 수행한 작업:
+        {self._format_history(current_state.history)}
+        
+        현재 화면:
+        {current_state.last_screenshot}
+        
+        질문: 목표가 달성되었나요?
+        
+        응답 형식:
+        <request_accomplished success="true|false">
+        이유 설명
+        </request_accomplished>
+        """
+        
+        response = await self.llm.ask(prompt)
+        parsed = parse_manager_response(response)
+        
+        return parsed["success"] == True
+```
+
+**Manager의 응답 파싱:**
+```python
+def parse_manager_response(response: str) -> dict:
+    """
+    Manager LLM의 응답을 구조화된 데이터로 변환
+    
+    입력 예시:
+    <thought>
+    네이버 블로그 앱을 실행하고, 
+    글쓰기 버튼을 찾아야 한다.
+    </thought>
+    <plan>
+    1. 홈 화면에서 네이버 블로그 앱 아이콘 찾기
+    2. 앱 아이콘 터치해서 실행
+    3. 로딩 대기
+    4. 글쓰기 버튼 찾기
+    5. 글쓰기 버튼 클릭
+    </plan>
+    
+    출력:
+    {
+        "thought": "네이버 블로그 앱을 실행하고...",
+        "plan": "1. 홈 화면에서...\n2. 앱 아이콘...",
+        "current_subgoal": "홈 화면에서 네이버 블로그 앱 아이콘 찾기"
+    }
+    """
+    thought = extract_xml_tag("thought", response)
+    plan = extract_xml_tag("plan", response)
+    
+    # 현재 서브골: plan의 첫 번째 줄
+    first_line = plan.split("\n")[0]
+    # "1. " 제거
+    current_subgoal = re.sub(r"^\d+\.\s*", "", first_line)
+    
+    return {
+        "thought": thought,
+        "plan": plan,
+        "current_subgoal": current_subgoal
+    }
+```
+
+#### 3.2.3 ExecutorAgent - 실행자
+
+**파일 위치:** `droidrun/agent/executor/`
+
+📖 **ExecutorAgent**
+├─ **정의**: Manager의 계획을 실제 모바일 액션으로 변환하는 "실행자"
+├─ **쉬운 비유**: 현장 작업자
+│  - 매니저: "이 벽에 그림 걸어"
+│  - 작업자: "어디에? 높이는? 못은 어디에?"
+│  - 작업자가 구체적으로 실행
+├─ **메커니즘**: 
+│  ```
+│  입력: "글쓰기 버튼 클릭"
+│    ↓
+│  화면 분석: "글쓰기 버튼이 (540, 1200)에 있네"
+│    ↓
+│  액션 생성: {"type": "tap", "x": 540, "y": 1200}
+│    ↓
+│  실행: adb shell input tap 540 1200
+│  ```
+└─ **존재 이유**: Manager의 "무엇을" 을 Executor의 "어떻게"로 변환
+
+**주요 메서드:**
+
+```python
+class ExecutorAgent:
+    async def decide_next_action(
+        self,
+        current_goal: str,      # 현재 서브골 (Manager가 제공)
+        screenshot: bytes,       # 현재 화면
+        ui_hierarchy: str,       # UI 요소 정보
+        history: List[Action]    # 이전 액션들
+    ) -> Action:
+        """
+        현재 상황에서 다음 액션 결정
+        
+        OpenManus의 think() + act()를 하나로 합친 것
+        """
+        # UI 요소들을 번호로 라벨링
+        elements = self._parse_ui_elements(ui_hierarchy)
+        labeled_screenshot = self._create_labeled_screenshot(
+            screenshot, 
+            elements
+        )
+        
+        # LLM에게 질문
+        prompt = f"""
+        현재 목표: {current_goal}
+        
+        화면의 UI 요소들:
+        {self._format_elements(elements)}
+        
+        이전 액션들:
+        {self._format_history(history)}
+        
+        다음 액션을 결정하세요.
+        
+        사용 가능한 액션:
+        - tap: 화면 터치 (element_id 또는 x,y)
+        - swipe: 스와이프 (direction: up/down/left/right)
+        - input: 텍스트 입력 (element_id, text)
+        - back: 뒤로가기
+        - home: 홈 버튼
+        
+        응답 형식:
+        ### Thought
+        (생각 과정)
+        
+        ### Action
+        {{"type": "tap", "element_id": 3}}
+        
+        ### Description
+        (왜 이 액션을 선택했는지)
+        """
+        
+        response = await self.llm.ask(
+            prompt,
+            image=labeled_screenshot
+        )
+        
+        # 응답 파싱
+        parsed = parse_executor_response(response)
+        
+        return Action(
+            type=parsed["action"]["type"],
+            params=parsed["action"]["params"],
+            thought=parsed["thought"],
+            description=parsed["description"]
+        )
+```
+
+**Executor 응답 파싱:**
+```python
+def parse_executor_response(response: str) -> dict:
+    """
+    Executor LLM의 응답 파싱
+    
+    입력 예시:
+    ### Thought
+    글쓰기 버튼이 화면 하단 중앙에 보인다.
+    element_id 5번이 해당 버튼인 것 같다.
+    
+    ### Action
+    {"type": "tap", "element_id": 5}
+    
+    ### Description
+    글쓰기 화면으로 진입하기 위해 버튼을 탭합니다.
+    
+    출력:
+    {
+        "thought": "글쓰기 버튼이 화면 하단...",
+        "action": {"type": "tap", "element_id": 5},
+        "description": "글쓰기 화면으로..."
+    }
+    """
+    # ### 기준으로 분할
+    sections = response.split("###")
+    
+    thought = ""
+    action_str = ""
+    description = ""
+    
+    for section in sections:
+        if "Thought" in section:
+            thought = section.split("Thought")[1].split("###")[0].strip()
+        elif "Action" in section:
+            action_str = section.split("Action")[1].split("###")[0].strip()
+        elif "Description" in section:
+            description = section.split("Description")[1].strip()
+    
+    # JSON 추출
+    json_match = re.search(r'\{.*\}', action_str, re.DOTALL)
+    if json_match:
+        action = json.loads(json_match.group())
+    else:
+        action = {}
+    
+    return {
+        "thought": thought,
+        "action": action,
+        "description": description
+    }
+```
+
+### 3.3 도구(Tools) 시스템
+
+DroidRun의 도구는 실제 Android/iOS 기기를 제어하는 "손과 발"입니다.
+
+#### 3.3.1 AdbTools - Android 제어
+
+**파일 위치:** `droidrun/tools/adb.py`
+
+📖 **ADB (Android Debug Bridge)**
+├─ **정의**: Android 기기와 PC를 연결해 명령을 전달하는 공식 도구
+├─ **쉬운 비유**: 리모컨
+│  - TV 리모컨으로 채널 변경, 볼륨 조절
+│  - ADB로 앱 실행, 화면 터치, 스크린샷
+├─ **메커니즘**: 
+│  ```
+│  PC ─[USB/WiFi]─ Android 기기
+│    │
+│    └─ adb 명령 전송
+│       예: "adb shell input tap 500 1000"
+│  ```
+└─ **존재 이유**: Android 시스템에 접근해 자동화하려면 ADB 필수
+
+```python
+class AdbTools:
+    def __init__(self, device_serial: str = None):
+        """
+        ADB 도구 초기화
+        
+        device_serial: 특정 기기 지정 (없으면 자동 선택)
+        """
+        self.device_serial = device_serial or self._get_default_device()
+    
+    def _get_default_device(self) -> str:
+        """연결된 첫 번째 기기 선택"""
+        result = subprocess.run(
+            ["adb", "devices"],
+            capture_output=True,
+            text=True
+        )
+        # 출력 예:
+        # List of devices attached
+        # emulator-5554    device
+        
+        lines = result.stdout.strip().split('\n')[1:]
+        if lines:
+            return lines[0].split('\t')[0]
+        raise Exception("연결된 기기 없음")
+    
+    def screenshot(self) -> bytes:
+        """
+        화면 스크린샷 캡처
+        
+        반환: PNG 이미지 바이트
+        """
+        result = subprocess.run(
+            ["adb", "-s", self.device_serial, 
+             "exec-out", "screencap", "-p"],
+            capture_output=True
+        )
+        return result.stdout
+    
+    def dump_ui_hierarchy(self) -> str:
+        """
+        현재 화면의 UI 요소들을 XML로 추출
+        
+        반환: UI hierarchy XML 문자열
+        """
+        # 1. UI hierarchy를 XML 파일로 저장
+        subprocess.run([
+            "adb", "-s", self.device_serial,
+            "shell", "uiautomator", "dump", "/sdcard/window_dump.xml"
+        ])
+        
+        # 2. XML 파일 내용 가져오기
+        result = subprocess.run([
+            "adb", "-s", self.device_serial,
+            "shell", "cat", "/sdcard/window_dump.xml"
+        ], capture_output=True, text=True)
+        
+        return result.stdout
+    
+    def tap(self, x: int, y: int):
+        """
+        화면 터치
+        
+        x, y: 터치할 좌표 (픽셀)
+        """
+        subprocess.run([
+            "adb", "-s", self.device_serial,
+            "shell", "input", "tap", str(x), str(y)
+        ])
+    
+    def swipe(
+        self, 
+        start_x: int, start_y: int,
+        end_x: int, end_y: int,
+        duration: int = 300
+    ):
+        """
+        스와이프 (드래그)
+        
+        start_x, start_y: 시작 좌표
+        end_x, end_y: 끝 좌표
+        duration: 소요 시간 (ms)
+        """
+        subprocess.run([
+            "adb", "-s", self.device_serial,
+            "shell", "input", "swipe",
+            str(start_x), str(start_y),
+            str(end_x), str(end_y),
+            str(duration)
+        ])
+    
+    def input_text(self, text: str):
+        """
+        텍스트 입력
+        
+        주의: 공백은 %s로 변환 필요
+        """
+        # 공백 처리
+        text = text.replace(" ", "%s")
+        
+        subprocess.run([
+            "adb", "-s", self.device_serial,
+            "shell", "input", "text", text
+        ])
+    
+    def press_key(self, keycode: str):
+        """
+        키 입력 (뒤로가기, 홈 등)
+        
+        keycode: 
+        - "KEYCODE_BACK": 뒤로가기
+        - "KEYCODE_HOME": 홈
+        - "KEYCODE_ENTER": 엔터
+        """
+        subprocess.run([
+            "adb", "-s", self.device_serial,
+            "shell", "input", "keyevent", keycode
+        ])
+    
+    def launch_app(self, package: str):
+        """
+        앱 실행
+        
+        package: 앱 패키지명
+        예: "com.nhn.android.blog"
+        """
+        subprocess.run([
+            "adb", "-s", self.device_serial,
+            "shell", "monkey", "-p", package,
+            "-c", "android.intent.category.LAUNCHER", "1"
+        ])
+```
+
+**UI Hierarchy 예시:**
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<hierarchy rotation="0">
+  <node index="0" text="" resource-id="" class="android.widget.FrameLayout" ...>
+    <node index="0" text="네이버 블로그" resource-id="com.nhn.android.blog:id/title" 
+          class="android.widget.TextView" clickable="false" 
+          bounds="[50,100][500,200]"/>
+    
+    <node index="1" text="글쓰기" resource-id="com.nhn.android.blog:id/btn_write" 
+          class="android.widget.Button" clickable="true" 
+          bounds="[540,1800][620,1900]"/>
+    
+    <node index="2" text="" resource-id="com.nhn.android.blog:id/edit_title" 
+          class="android.widget.EditText" clickable="true" 
+          bounds="[40,300][720,400]"/>
+  </node>
+</hierarchy>
+```
+
+이 XML을 파싱하면:
+```python
+[
+    {
+        "id": 1,
+        "class": "TextView",
+        "text": "네이버 블로그",
+        "resource_id": "title",
+        "clickable": False,
+        "bounds": (50, 100, 500, 200),
+        "center": (275, 150)
+    },
+    {
+        "id": 2,
+        "class": "Button",
+        "text": "글쓰기",
+        "resource_id": "btn_write",
+        "clickable": True,
+        "bounds": (540, 1800, 620, 1900),
+        "center": (580, 1850)  # ← 여기를 tap!
+    },
+    ...
+]
+```
+
+#### 3.3.2 Portal - 더 강력한 제어
+
+**파일 위치:** `droidrun/tools/portal_client.py`
+
+📖 **DroidRun Portal**
+├─ **정의**: ADB보다 더 강력한 기능을 제공하는 Android 앱
+├─ **쉬운 비유**: ADB는 리모컨, Portal은 직접 조작
+│  - ADB: 외부에서 명령 전송 (제한적)
+│  - Portal: 내부에서 직접 실행 (강력)
+├─ **메커니즘**: 
+│  ```
+│  1. Portal 앱을 Android에 설치
+│  2. Accessibility Service 권한 부여
+│  3. PC에서 HTTP로 명령 전송
+│  4. Portal이 앱 내부에서 직접 UI 조작
+│  ```
+└─ **존재 이유**: ADB는 일부 앱/시나리오에서 제한적 (보안 앱, 민감한 UI 등)
+
+**Portal의 장점:**
+```python
+# ADB: 좌표만 지원
+adb.tap(500, 1000)  # 화면 회전 시 문제!
+
+# Portal: 요소 ID로 직접 접근
+portal.tap(element_id="btn_write")  # 안전하고 정확
+
+# Portal: 더 많은 정보
+portal.get_element_text(element_id="title")  # 텍스트 읽기
+portal.wait_for_element(element_id="loading", disappear=True)  # 로딩 대기
+```
+
+---
+
+## 4. 두 프로젝트 통합 전략
+
+> **"OpenManus의 두뇌 + DroidRun의 손발 = 완벽한 자동화"**
+
+### 4.1 통합 아키텍처
+
+```
+┌──────────────────────────────────────────────────────────┐
+│           통합 시스템 전체 구조                            │
+│                                                           │
+│  사용자: "네이버 블로그에 강남 맛집 글 작성"                │
+│     │                                                     │
+│     ▼                                                     │
+│  ┌─────────────────────────────────────┐                 │
+│  │  OpenManus (총괄 지휘자)             │                 │
+│  │                                     │                 │
+│  │  1. 작업 분석                        │                 │
+│  │     "웹 리서치 + 모바일 포스팅"      │                 │
+│  │                                     │                 │
+│  │  2. 단계 계획                        │                 │
+│  │     Step 1: 구글 검색 (BrowserUse)  │                 │
+│  │     Step 2: 블로그 크롤링           │                 │
+│  │     Step 3: 콘텐츠 생성 (LLM)       │                 │
+│  │     Step 4: 모바일 포스팅 (DroidRun)│                 │
+│  │                                     │                 │
+│  │  3. 도구 선택 & 실행                 │                 │
+│  └─────────┬───────────────────┬───────┘                 │
+│            │                   │                         │
+│            ▼                   ▼                         │
+│  ┌──────────────────┐  ┌──────────────────┐             │
+│  │  BrowserUseTool  │  │  DroidRunAdapter │             │
+│  │                  │  │        │         │             │
+│  │  (웹 자동화)      │  │        ▼         │             │
+│  │                  │  │  ┌────────────┐  │             │
+│  │  Playwright      │  │  │ DroidAgent │  │             │
+│  │     ↓            │  │  │     │      │  │             │
+│  │  웹사이트 제어    │  │  │     ├─ Manager             │
+│  └──────────────────┘  │  │     ├─ Executor             │
+│                        │  │     └─ ADB/Portal            │
+│                        │  │         │      │  │             │
+│                        │  │         ▼      │  │             │
+│                        │  │    Android 제어 │  │             │
+│                        │  └────────────┘  │             │
+│                        └──────────────────┘             │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 4.2 DroidRunAdapter 구현
+
+OpenManus의 도구 인터페이스(`BaseTool`)에 맞게 DroidRun을 감싸는 어댑터를 만듭니다.
+
+**파일 위치:** `app/tool/droidrun_adapter.py` (OpenManus 프로젝트에 생성)
+
+```python
+from app.tool.base import BaseTool, ToolResult
+from droidrun.agent.droid import DroidAgent
+
+class DroidRunAdapter(BaseTool):
+    """
+    DroidRun을 OpenManus 도구로 사용하기 위한 어댑터
+    
+    OpenManus의 BaseTool 인터페이스 구현
+    → Manus가 다른 도구처럼 DroidRun 사용 가능
+    """
+    
+    name = "droidrun_mobile"
+    description = """
+    Android 모바일 기기를 자연어로 제어합니다.
+    
+    할 수 있는 일:
+    - 네이티브 앱 자동화 (네이버, 인스타그램, 유튜브 등)
+    - 앱 실행 및 조작
+    - 텍스트 입력
+    - 버튼 클릭
+    - 스크롤 및 제스처
+    - 스크린샷 캡처
+    
+    주의사항:
+    - Android 기기가 ADB로 연결되어 있어야 합니다
+    - DroidRun Portal 앱이 설치되어 있으면 더 안정적입니다
+    - 작업에 30초~2분 정도 소요됩니다
+    
+    사용 예:
+    - "네이버 블로그 앱에서 글 작성"
+    - "인스타그램에 사진 업로드"
+    - "카카오톡으로 메시지 전송"
+    """
+    
+    parameters = {
+        "type": "object",
+        "properties": {
+            "task": {
+                "type": "string",
+                "description": "모바일에서 수행할 작업 (자연어로 구체적으로)"
+            },
+            "app_name": {
+                "type": "string",
+                "description": "타겟 앱 이름 (선택, 예: '네이버 블로그', '인스타그램')"
+            },
+            "max_steps": {
+                "type": "integer",
+                "default": 30,
+                "description": "최대 시도 횟수"
+            }
+        },
+        "required": ["task"]
+    }
+    
+    def __init__(self):
+        """어댑터 초기화"""
+        super().__init__()
+        # DroidRun 설정 로드 (config.toml에서)
+        from app.config import config
+        
+        self.device_serial = config.droidrun.get("device_serial")
+        self.llm_provider = config.droidrun.get("llm_provider", "anthropic")
+        self.llm_model = config.droidrun.get("llm_model", "claude-3-5-sonnet")
+    
+    async def execute(
+        self, 
+        task: str,
+        app_name: str = None,
+        max_steps: int = 30
+    ) -> ToolResult:
+        """
+        모바일 작업 실행
+        
+        동작 과정:
+        1. DroidAgent 생성
+        2. 목표 달성까지 실행 (Manager + Executor)
+        3. 결과 반환
+        """
+        try:
+            # 작업 프롬프트 강화
+            enhanced_task = self._enhance_task(task, app_name)
+            
+            # DroidAgent 생성
+            agent = DroidAgent(
+                goal=enhanced_task,
+                llm_provider=self.llm_provider,
+                llm_model=self.llm_model,
+                device_serial=self.device_serial,
+                max_steps=max_steps
+            )
+            
+            # 실행
+            result = await agent.run()
+            
+            # 성공/실패 판단
+            if result["success"]:
+                return ToolResult(
+                    output=f"""
+✅ 모바일 작업 완료!
+
+작업: {task}
+소요 단계: {result['steps']}
+상태: 성공
+
+실행 내역:
+{self._format_trajectory(result['trajectory'])}
+                    """.strip()
+                )
+            else:
+                # 실패했지만 부분 성공 가능
+                return ToolResult(
+                    output=f"""
+⚠️ 모바일 작업 미완료
+
+작업: {task}
+소요 단계: {result['steps']} (최대 {max_steps})
+상태: 시간 초과 또는 목표 미달성
+
+실행 내역:
+{self._format_trajectory(result['trajectory'])}
+
+제안: max_steps를 늘리거나 작업을 더 작게 나누세요.
+                    """.strip()
+                )
+                
+        except Exception as e:
+            return ToolResult(
+                error=f"모바일 작업 실행 중 오류: {str(e)}"
+            )
+    
+    def _enhance_task(self, task: str, app_name: str = None) -> str:
+        """
+        작업 프롬프트를 더 구체적으로 강화
+        
+        앱별 가이드 문서를 읽어서 주입 가능
+        """
+        if app_name == "네이버 블로그":
+            # 네이버 블로그 가이드 로드
+            guide = self._load_app_guide("naver_blog")
+            if guide:
+                return f"{task}\n\n앱 사용 가이드:\n{guide}"
+        
+        return task
+    
+    def _load_app_guide(self, app_id: str) -> str:
+        """
+        앱별 가이드 문서 로드
+        
+        파일: docs/app_guides/{app_id}_guide.md
+        """
+        import os
+        guide_path = f"docs/app_guides/{app_id}_guide.md"
+        
+        if os.path.exists(guide_path):
+            with open(guide_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        return ""
+    
+    def _format_trajectory(self, trajectory: list) -> str:
+        """실행 과정을 읽기 쉽게 포맷"""
+        lines = []
+        for i, action in enumerate(trajectory, 1):
+            lines.append(f"{i}. {action.get('description', action.get('type'))}")
+        return "\n".join(lines)
+```
+
+### 4.3 Manus에 DroidRun 등록
+
+**파일 위치:** `app/agent/manus.py` (OpenManus)
+
+```python
+from app.tool.droidrun_adapter import DroidRunAdapter
+
+class Manus(ToolCallAgent):
+    # 기존 코드...
+    
+    @classmethod
+    async def create(cls, **kwargs) -> "Manus":
+        """
+        Manus 인스턴스 생성
+        
+        DroidRun을 자동으로 등록
+        """
+        instance = cls(**kwargs)
+        
+        # 기본 MCP 서버 연결
+        await instance.initialize_mcp_servers()
+        
+        # DroidRun 도구 추가 시도
+        try:
+            droidrun_tool = DroidRunAdapter()
+            
+            # 환경 검증 (ADB, 기기 연결 등)
+            if droidrun_tool.validate_environment():
+                instance.available_tools.add_tools(droidrun_tool)
+                logger.info("✅ DroidRun 모바일 자동화 도구가 활성화되었습니다")
+            else:
+                logger.warning("⚠️ DroidRun 환경이 준비되지 않았습니다 (기기 미연결 또는 ADB 없음)")
+        except Exception as e:
+            logger.warning(f"⚠️ DroidRun 로드 실패: {e}")
+        
+        instance._initialized = True
+        return instance
+```
+
+### 4.4 설정 파일 업데이트
+
+**파일 위치:** `config/config.toml` (OpenManus)
+
+```toml
+# LLM 설정
+[llm]
+model = "gpt-4o"
+api_key = "sk-..."
+
+# DroidRun 설정
+[droidrun]
+enabled = true
+llm_provider = "anthropic"  # OpenAI, Anthropic, Gemini 중 선택
+llm_model = "claude-3-5-sonnet-20241022"
+device_serial = ""  # 비어있으면 자동 감지
+max_steps = 30
+```
+
+### 4.5 통합 사용 예시
+
+#### 예시 1: 웹 리서치 → 모바일 포스팅
+
+```python
+# main.py
+async def main():
+    agent = await Manus.create()
+    
+    result = await agent.run("""
+다음 작업을 수행하세요:
+
+1단계: 웹 리서치
+- 구글에서 "강남 맛집 2025" 검색
+- 상위 3개 블로그 내용 크롤링
+- 핵심 정보 추출 (맛집 이름, 위치, 특징, 가격대)
+
+2단계: 콘텐츠 생성
+- 추출한 정보를 바탕으로 1000자 블로그 글 작성
+- 제목: "2025년 강남 핫플 맛집 BEST 3"
+- 구조: 소개 → 맛집별 설명 → 총평
+
+3단계: 모바일 포스팅
+- Android 네이버 블로그 앱 실행
+- 생성한 글을 제목과 본문에 입력
+- 발행하기
+
+모든 단계를 자동으로 완수하세요.
+    """)
+    
+    print(result)
+    await agent.cleanup()
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+**실행 흐름:**
+
+```
+[Manus 초기화]
+✅ GPT-4o 연결
+✅ BrowserUseTool 등록
+✅ DroidRunAdapter 등록
+✅ 준비 완료
+
+[Step 1] Think
+"3단계 작업을 순차적으로 진행해야 함"
+→ tool_calls = [{"name": "browser_use", "arguments": {"task": "구글 검색..."}}]
+
+[Step 1] Act (BrowserUseTool)
+- google.com 접속
+- "강남 맛집 2025" 검색
+- 상위 3개 블로그 크롤링
+→ 결과: 맛집 정보 추출 완료
+
+[Step 2] Think
+"크롤링 완료. 이제 콘텐츠 생성"
+→ tool_calls = []  (LLM이 직접 글 작성)
+
+[Step 2] Act
+(도구 없이 LLM이 1000자 블로그 글 생성)
+→ 결과: 제목 + 본문 완성
+
+[Step 3] Think
+"이제 모바일로 포스팅"
+→ tool_calls = [{"name": "droidrun_mobile", "arguments": {...}}]
+
+[Step 3] Act (DroidRunAdapter)
+DroidAgent 실행:
+  [Manager] 계획 수립
+  - 네이버 블로그 앱 실행
+  - 글쓰기 화면 진입
+  - 제목/본문 입력
+  - 발행
+
+  [Executor] 실행
+  - 홈 화면에서 네이버 블로그 아이콘 탭
+  - 로딩 대기
+  - 글쓰기 버튼 탭
+  - 제목 입력란 탭 → 텍스트 입력
+  - 본문 입력란 탭 → 텍스트 입력
+  - 발행 버튼 탭
+
+  ✅ 완료!
+
+[Step 4] Think
+"모든 작업 완료"
+→ tool_calls = [{"name": "Terminate"}]
+
+[최종 결과]
+✅ 작업 완료!
+- 웹 리서치: 3개 블로그 분석
+- 콘텐츠: 1023자 생성
+- 포스팅: 네이버 블로그 발행 성공
+```
+
+---
+
+## 5. 실전 활용 가이드
+
+### 5.1 개발 환경 설정
+
+#### 1. 필수 소프트웨어 설치
+
+```bash
+# Python 3.12 설치 (필수)
+python --version  # 3.12 이상 확인
+
+# uv 설치 (패키지 관리자, 추천)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Android SDK Platform Tools (ADB 포함)
+# Mac
+brew install android-platform-tools
+
+# Ubuntu/WSL
+sudo apt update
+sudo apt install android-tools-adb android-tools-fastboot
+
+# Windows
+# https://developer.android.com/tools/releases/platform-tools 에서 다운로드
+```
+
+#### 2. 프로젝트 설치
+
+```bash
+# 작업 디렉토리 생성
+mkdir ~/ai-automation
+cd ~/ai-automation
+
+# OpenManus 클론 & 설치
+git clone https://github.com/FoundationAgents/OpenManus.git
+cd OpenManus
+uv venv --python 3.12
+source .venv/bin/activate  # Windows: .venv\Scripts\activate
+uv pip install -r requirements.txt
+
+# Playwright 설치 (브라우저 자동화용)
+playwright install
+
+# DroidRun 설치
+cd ..
+git clone https://github.com/droidrun/droidrun.git
+cd droidrun
+pip install -e .
+```
+
+#### 3. Android 기기 설정
+
+**물리 기기:**
+```bash
+# 1. Android 기기에서 개발자 옵션 활성화
+# 설정 → 휴대전화 정보 → 빌드 번호 7번 탭
+
+# 2. USB 디버깅 활성화
+# 설정 → 개발자 옵션 → USB 디버깅 ON
+
+# 3. PC와 USB 연결
+
+# 4. 연결 확인
+adb devices
+# 출력: List of devices attached
+#       XXXXXXXX    device  ← 이렇게 나오면 성공
+```
+
+**에뮬레이터 (Android Studio):**
+```bash
+# Android Studio 설치 후
+# Tools → AVD Manager → Create Virtual Device
+# Pixel 6 / API 34 (Android 14) 추천
+
+# 에뮬레이터 실행 후
+adb devices
+# 출력: emulator-5554    device
+```
+
+#### 4. API 키 설정
+
+**config/config.toml (OpenManus):**
+```toml
+[llm]
+model = "gpt-4o"
+base_url = "https://api.openai.com/v1"
+api_key = "sk-..."  # OpenAI API 키
+
+# 또는 Anthropic
+# model = "claude-3-5-sonnet-20241022"
+# base_url = "https://api.anthropic.com"
+# api_key = "sk-ant-..."
+
+[droidrun]
+enabled = true
+llm_provider = "openai"  # 또는 "anthropic"
+llm_model = "gpt-4o"
+device_serial = ""  # 비어있으면 자동
+max_steps = 30
+```
+
+### 5.2 기본 사용법
+
+#### 단순 웹 자동화
+
+```python
+# examples/web_search.py
+import asyncio
+from app.agent.manus import Manus
+
+async def main():
+    agent = await Manus.create()
+    
+    await agent.run("구글에서 Python 튜토리얼 찾아서 상위 5개 요약해줘")
+    
+    await agent.cleanup()
+
+asyncio.run(main())
+```
+
+#### 단순 모바일 자동화
+
+```python
+# examples/mobile_task.py
+import asyncio
+from droidrun.agent.droid import DroidAgent
+
+async def main():
+    agent = DroidAgent(
+        goal="네이버 블로그 앱을 열어서 첫 번째 글의 제목을 알려줘",
+        llm_provider="openai",
+        llm_model="gpt-4o"
+    )
+    
+    result = await agent.run()
+    print(result)
+
+asyncio.run(main())
+```
+
+#### 통합 자동화 (웹 + 모바일)
+
+```python
+# examples/integrated_automation.py
+import asyncio
+from app.agent.manus import Manus
+
+async def main():
+    agent = await Manus.create()
+    
+    await agent.run("""
+1. 구글에서 "오늘의 뉴스" 검색
+2. 첫 번째 뉴스 기사 전문 가져오기
+3. 200자로 요약
+4. Android 카카오톡으로 나에게 전송
+    """)
+    
+    await agent.cleanup()
+
+asyncio.run(main())
+```
+
+### 5.3 앱별 가이드 문서 작성
+
+DroidRun의 성능을 극대화하려면 자주 사용하는 앱의 "가이드 문서"를 작성하세요.
+
+**docs/app_guides/naver_blog_guide.md:**
+```markdown
+# 네이버 블로그 모바일 앱 사용 가이드
+
+## 앱 정보
+- 패키지명: com.nhn.android.blog
+- 버전: 최신 (2025년)
+
+## 주요 화면 및 흐름
+
+### 1. 글쓰기 시작
+홈 화면 → 하단 중앙 "글쓰기" 버튼 (플러스 아이콘)
+
+### 2. 글 작성 화면
+- 상단: 제목 입력란 (placeholder: "제목을 입력하세요")
+- 중앙: 본문 입력란 (placeholder: "내용을 입력하세요")
+- 하단: 사진 추가, 태그, 발행 버튼
+
+### 3. 발행
+우측 상단 "발행" 버튼 → 카테고리 선택 → "발행" 확인
+
+## 주의사항
+- 로그인 필수
+- 제목은 50자 이내
+- 본문은 최소 10자 이상
+- 발행 전 미리보기 권장
+
+## UI 요소 ID (참고)
+- 글쓰기 버튼: `btn_write`
+- 제목 입력란: `edit_title`
+- 본문 입력란: `edit_content`
+- 발행 버튼: `btn_publish`
+```
+
+이 가이드를 `DroidRunAdapter`가 자동으로 읽어서 LLM에게 주입 → 성공률 향상!
+
+### 5.4 실전 프로젝트 예시
+
+#### 프로젝트 1: 일간 뉴스 자동 요약 & 공유
+
+**목표:** 매일 아침 뉴스를 자동으로 요약해서 카카오톡으로 전송
+
+**구현:**
+```python
+# daily_news.py
+import asyncio
+from datetime import datetime
+from app.agent.manus import Manus
+
+async def daily_news_summary():
+    agent = await Manus.create()
+    
+    today = datetime.now().strftime("%Y년 %m월 %d일")
+    
+    await agent.run(f"""
+오늘 ({today}) 작업:
+
+1. 네이버 뉴스에서 "주요 뉴스" 탭 접속
+2. 상위 5개 뉴스 헤드라인 & 본문 수집
+3. 각 뉴스를 50자로 요약
+4. 다음 형식으로 메시지 생성:
+   
+   📰 {today} 뉴스 요약
+   
+   1. [헤드라인]
+   - 요약...
+   
+   2. ...
+
+5. Android 카카오톡 앱에서 나에게 전송
+    """)
+    
+    await agent.cleanup()
+
+if __name__ == "__main__":
+    asyncio.run(daily_news_summary())
+```
+
+**스케줄링 (cron):**
+```bash
+# Linux/Mac crontab
+0 8 * * * cd ~/ai-automation && python daily_news.py
+# 매일 오전 8시 실행
+```
+
+#### 프로젝트 2: 인스타그램 자동 포스팅
+
+**목표:** 여행 사진 + AI 생성 캡션으로 자동 포스팅
+
+```python
+# instagram_auto_post.py
+import asyncio
+from app.agent.manus import Manus
+
+async def post_to_instagram(image_path: str, location: str):
+    agent = await Manus.create()
+    
+    await agent.run(f"""
+작업:
+
+1. 이미지 분석
+   - 파일: {image_path}
+   - 장소: {location}
+   - Vision LLM으로 이미지 내용 파악
+
+2. 캡션 생성
+   - 감성적이고 트렌디한 문구
+   - 해시태그 10개 포함
+   - 이모지 활용
+   - 영어 + 한국어
+
+3. 인스타그램 포스팅
+   - Android 인스타그램 앱 실행
+   - 새 게시물 버튼
+   - 이미지 선택: {image_path}
+   - 캡션 입력
+   - 위치 추가: {location}
+   - 공유하기
+    """)
+    
+    await agent.cleanup()
+
+# 사용
+asyncio.run(post_to_instagram(
+    image_path="/storage/emulated/0/DCIM/jeju_sunset.jpg",
+    location="제주도 성산일출봉"
+))
+```
+
+### 5.5 디버깅 및 문제 해결
+
+#### 문제 1: "DroidRun 도구를 찾을 수 없습니다"
+
+**원인:** DroidRunAdapter가 Manus에 등록되지 않음
+
+**해결:**
+```bash
+# ADB 연결 확인
+adb devices
+# → 기기가 보이지 않으면 USB 재연결
+
+# OpenManus 로그 확인
+python main.py
+# → "⚠️ DroidRun 환경이 준비되지..." 메시지 확인
+
+# 환경 검증 스크립트 실행
+python -c "
+from app.tool.droidrun_adapter import DroidRunAdapter
+tool = DroidRunAdapter()
+print(tool.validate_environment())
+"
+```
+
+#### 문제 2: "모바일 작업이 계속 실패합니다"
+
+**원인:** LLM이 화면을 잘못 이해하거나 UI 요소를 못 찾음
+
+**해결:**
+1. **앱 가이드 작성**: `docs/app_guides/{app}_guide.md` 생성
+2. **max_steps 증가**: 기본 30 → 50으로
+3. **스크린샷 확인**: DroidRun은 각 단계마다 스크린샷을 저장
+   ```bash
+   ls ~/.droidrun/screenshots/
+   # 어느 단계에서 막혔는지 확인
+   ```
+4. **수동 테스트**: 먼저 직접 앱을 조작해보고 흐름 파악
+
+#### 문제 3: "토큰 제한 초과"
+
+**원인:** 메모리가 너무 커서 LLM 입력 제한 초과
+
+**해결:**
+```python
+# config/config.toml
+[llm]
+max_tokens = 8000  # 늘리기
+temperature = 0.0
+
+[agent]
+max_observe = 5000  # 도구 결과 최대 길자 (기본 10000)
+```
+
+또는 작업을 더 작게 나누기:
+```python
+# 나쁜 예 (한 번에 너무 많음)
+await agent.run("10개 사이트 크롤링하고 분석하고 포스팅")
+
+# 좋은 예 (단계별 분리)
+result1 = await agent.run("사이트 5개 크롤링")
+result2 = await agent.run(f"이전 결과 분석: {result1}")
+result3 = await agent.run(f"분석 결과로 포스팅: {result2}")
+```
+
+### 5.6 성능 최적화
+
+#### 1. LLM 모델 선택
+
+```python
+# 빠르고 저렴: GPT-4o-mini, Claude Haiku
+config.llm.model = "gpt-4o-mini"
+
+# 균형: GPT-4o, Claude 3.5 Sonnet (권장)
+config.llm.model = "gpt-4o"
+
+# 최고 성능: Claude 3.5 Opus, o1-preview
+config.llm.model = "claude-3-opus-20240229"
+```
+
+#### 2. 병렬 실행
+
+```python
+import asyncio
+
+# 여러 작업을 동시에
+async def batch_tasks():
+    agent = await Manus.create()
+    
+    tasks = [
+        agent.run("작업 1"),
+        agent.run("작업 2"),
+        agent.run("작업 3")
+    ]
+    
+    results = await asyncio.gather(*tasks)
+    
+    await agent.cleanup()
+    return results
+```
+
+#### 3. 캐싱 활용
+
+```python
+# OpenManus는 자동으로 메모리 캐싱
+# 같은 세션 내에서 중복 작업 방지
+
+agent = await Manus.create()
+
+# 첫 번째: 실제 실행
+await agent.run("Python 튜토리얼 검색")
+
+# 두 번째: 이전 결과 기억 → 빠름
+await agent.run("방금 찾은 튜토리얼 중 첫 번째 요약해줘")
+```
+
+---
+
+## 6. 마치며
+
+### 6.1 프로젝트 요약
+
+```
+┌──────────────────────────────────────────────────────┐
+│          OpenManus + DroidRun = 최강 조합             │
+│                                                       │
+│  OpenManus                                            │
+│  ✅ 범용 AI 에이전트 프레임워크                        │
+│  ✅ 다양한 도구 통합 (웹, 코드, 파일, MCP)             │
+│  ✅ ReAct 패러다임으로 단계적 사고                     │
+│  ✅ 토큰 관리, 무한 루프 감지 등 실전 기능             │
+│                                                       │
+│  DroidRun                                             │
+│  ✅ 모바일 특화 AI 에이전트                           │
+│  ✅ Manager + Executor 이중 구조                      │
+│  ✅ Reflection으로 실패에서 학습                       │
+│  ✅ ADB + Portal로 강력한 제어                        │
+│                                                       │
+│  통합 시스템                                          │
+│  ✅ 웹 리서치 → 콘텐츠 생성 → 모바일 포스팅            │
+│  ✅ 하나의 자연어 명령으로 전체 자동화                  │
+│  ✅ 확장 가능한 아키텍처 (새 도구 추가 쉬움)            │
+└──────────────────────────────────────────────────────┘
+```
+
+### 6.2 다음 단계 제안
+
+1. **프로토타입 구축**
+   - 간단한 작업부터 시작 (웹 검색, 모바일 앱 실행)
+   - 점진적으로 복잡도 증가
+
+2. **앱 가이드 라이브러리 구축**
+   - 자주 사용하는 앱 10개의 가이드 작성
+   - 커뮤니티와 공유
+
+3. **모니터링 & 로깅**
+   - 실행 과정 모두 기록
+   - 실패 케이스 분석
+   - 성공률 추적
+
+4. **프로덕션화**
+   - Docker 컨테이너화
+   - 클라우드 배포 (AWS, GCP)
+   - 스케줄링 자동화
+
+5. **기여하기**
+   - OpenManus: https://github.com/FoundationAgents/OpenManus
+   - DroidRun: https://github.com/droidrun/droidrun
+   - 버그 리포트, PR, 새 기능 제안
+
+### 6.3 참고 자료
+
+**OpenManus:**
+- 공식 문서: https://github.com/FoundationAgents/OpenManus
+- Discord: https://discord.gg/DYn29wFk9z
+- 데모: https://huggingface.co/spaces/lyh-917/OpenManusDemo
+
+**DroidRun:**
+- 공식 문서: https://docs.droidrun.ai
+- Discord: https://discord.gg/ZZbKEZZkwK
+- 벤치마크: https://droidrun.ai/benchmark
+
+**관련 기술:**
+- ReAct: https://react-lm.github.io/
+- Anthropic Computer Use: https://www.anthropic.com/news/computer-use
+- MCP: https://modelcontextprotocol.io/
+- Browser-Use: https://github.com/browser-use/browser-use
+
+---
+
+**문서 작성:** 2025년 (AI Agent 시대의 시작)
+**버전:** 1.0
+**라이선스:** MIT
+
+이 문서가 당신의 AI 에이전트 여정에 도움이 되기를 바랍니다! 🚀
+
