@@ -1,0 +1,494 @@
+---
+title: 에이전트 시스템
+description: OpenManus 에이전트의 작동 원리와 주요 에이전트들
+---
+
+# 에이전트 시스템
+
+OpenManus의 **에이전트**는 사용자의 요청을 이해하고, 적절한 도구를 선택하며, 단계별로 작업을 실행하는 자율적인 AI 시스템입니다.
+
+## 에이전트 기본 개념
+
+📖 **AI 에이전트**
+├─ **정의**: 목표를 달성하기 위해 환경을 관찰하고 행동하는 자율적인 AI 시스템
+├─ **쉬운 비유**: 업무 지시를 받고 스스로 계획을 세워 일을 처리하는 직원
+├─ **메커니즘**: 관찰 → 사고 (LLM) → 행동 (도구 사용) → 결과 확인 사이클 반복
+└─ **존재 이유**: 사람의 개입 없이 복잡한 작업을 자동으로 완수하기 위함
+
+## 에이전트 라이프사이클
+
+```
+┌─────────┐
+│  IDLE   │ ← 초기 상태
+└────┬────┘
+     │ run() 호출
+     ▼
+┌─────────┐
+│ RUNNING │ ← 작업 실행 중
+└────┬────┘
+     │
+     ├─ step 1 → 도구 호출
+     ├─ step 2 → 결과 분석
+     ├─ step 3 → 다음 작업
+     │
+     ▼
+┌──────────┐
+│ FINISHED │ ← 작업 완료
+└──────────┘
+     or
+┌──────────┐
+│  ERROR   │ ← 오류 발생
+└──────────┘
+```
+
+## BaseAgent
+
+모든 에이전트의 기본 클래스입니다.
+
+### 핵심 속성
+
+```python
+class BaseAgent:
+    name: str                    # 에이전트 이름
+    description: str             # 에이전트 설명
+    system_prompt: str           # 시스템 프롬프트
+    next_step_prompt: str        # 다음 단계 프롬프트
+    llm: LLM                     # 언어 모델
+    memory: Memory               # 대화 메모리
+    state: AgentState            # 현재 상태
+    max_steps: int = 10          # 최대 실행 단계
+    current_step: int = 0        # 현재 단계
+```
+
+### 주요 메서드
+
+#### run()
+
+에이전트의 메인 실행 루프입니다:
+
+```python
+async def run(self, request: Optional[str] = None) -> str:
+    """
+    에이전트 실행
+    
+    Args:
+        request: 사용자 요청
+        
+    Returns:
+        실행 결과 문자열
+    """
+    if request:
+        self.update_memory("user", request)
+    
+    while self.current_step < self.max_steps:
+        self.current_step += 1
+        await self.step()
+        
+        if self.is_stuck():
+            self.handle_stuck_state()
+```
+
+#### step()
+
+단일 실행 단계를 처리합니다 (추상 메서드):
+
+```python
+@abstractmethod
+async def step(self) -> str:
+    """
+    하나의 실행 단계 수행
+    서브클래스에서 반드시 구현해야 함
+    """
+    pass
+```
+
+#### update_memory()
+
+메모리에 새 메시지를 추가합니다:
+
+```python
+def update_memory(
+    self,
+    role: str,              # "user", "assistant", "tool", "system"
+    content: str,           # 메시지 내용
+    base64_image: Optional[str] = None,
+    **kwargs
+) -> None:
+    """메모리에 메시지 추가"""
+```
+
+### 무한 루프 방지
+
+에이전트가 같은 작업을 반복할 때 자동으로 감지하고 처리합니다:
+
+```python
+def is_stuck(self) -> bool:
+    """
+    동일한 응답이 duplicate_threshold(기본 2회) 이상 
+    반복되면 True 반환
+    """
+    
+def handle_stuck_state(self):
+    """
+    무한 루프 감지 시 프롬프트에 
+    '새로운 전략 시도' 메시지 추가
+    """
+```
+
+## ToolCallAgent
+
+도구 호출 기능을 가진 에이전트입니다.
+
+```python
+class ToolCallAgent(BaseAgent):
+    available_tools: ToolCollection
+    special_tool_names: List[str]
+    
+    async def think(self) -> bool:
+        """
+        LLM에게 다음 단계를 질문하고
+        도구 호출이 필요한지 판단
+        """
+        
+    async def act(self) -> ToolResult:
+        """
+        도구를 실행하고 결과 반환
+        """
+```
+
+### think 단계
+
+```
+메모리 준비 → LLM 호출 → 응답 분석
+                ↓
+         도구 호출 필요?
+         ├─ Yes → tool_calls 저장
+         └─ No  → 텍스트 응답만 저장
+```
+
+### act 단계
+
+```
+tool_calls 확인
+    ↓
+각 도구 실행
+    ↓
+결과 수집
+    ↓
+ToolResult 반환
+```
+
+## 주요 에이전트 유형
+
+### 1. Manus Agent
+
+범용 작업을 처리하는 주요 에이전트입니다.
+
+```python
+class Manus(ToolCallAgent):
+    name = "Manus"
+    description = "범용 AI 에이전트"
+    
+    available_tools = ToolCollection(
+        PythonExecute(),
+        BrowserUseTool(),
+        StrReplaceEditor(),
+        AskHuman(),
+        Terminate(),
+    )
+```
+
+**특징**:
+- MCP 통합 지원
+- 브라우저 컨텍스트 관리
+- 동적 도구 추가/제거
+- 다중 LLM 지원
+
+**사용 예시**:
+
+```python
+agent = await Manus.create()
+result = await agent.run("Python으로 피보나치 수열 생성")
+```
+
+### 2. DataAnalysis Agent
+
+데이터 분석 및 시각화 전문 에이전트입니다.
+
+**특징**:
+- Chart.js 기반 시각화
+- CSV/Excel 파일 처리
+- 통계 분석
+- 그래프 생성
+
+**사용 예시**:
+
+```python
+agent = DataAnalysis()
+result = await agent.run("sales.csv의 월별 매출을 막대 그래프로")
+```
+
+### 3. MCP Agent
+
+MCP 프로토콜을 통해 외부 도구를 사용하는 에이전트입니다.
+
+**특징**:
+- STDIO/SSE 연결 지원
+- 동적 도구 로딩
+- 멀티 서버 연결
+
+**사용 예시**:
+
+```python
+agent = MCPAgent()
+await agent.initialize(
+    connection_type="stdio",
+    command="npx",
+    args=["-y", "@modelcontextprotocol/server-filesystem", "/workspace"]
+)
+result = await agent.run("현재 디렉토리의 파일 목록 보여줘")
+```
+
+### 4. Browser Agent
+
+브라우저 자동화 전문 에이전트입니다.
+
+**특징**:
+- Playwright 통합
+- 멀티 페이지 관리
+- 스크린샷 캡처
+- 폼 자동 입력
+
+### 5. SWE Agent
+
+소프트웨어 엔지니어링 작업 전문 에이전트입니다.
+
+**특징**:
+- 코드 검색 및 이해
+- 버그 수정
+- 테스트 작성
+- 리팩토링
+
+## 커스텀 에이전트 만들기
+
+### 1. 간단한 에이전트
+
+```python
+from app.agent.base import BaseAgent
+from app.schema import Message
+
+class SimpleAgent(BaseAgent):
+    name = "SimpleAgent"
+    description = "간단한 예제 에이전트"
+    
+    async def step(self) -> str:
+        # 1. 메모리에서 마지막 사용자 메시지 가져오기
+        last_message = self.memory.messages[-1]
+        
+        # 2. LLM에게 응답 요청
+        response = await self.llm.chat_completion(
+            self.memory.messages
+        )
+        
+        # 3. 응답을 메모리에 저장
+        self.update_memory("assistant", response.content)
+        
+        # 4. 작업 완료 상태로 전환
+        if "완료" in response.content:
+            self.state = AgentState.FINISHED
+            
+        return response.content
+```
+
+### 2. 도구를 사용하는 에이전트
+
+```python
+from app.agent.toolcall import ToolCallAgent
+from app.tool import ToolCollection, PythonExecute
+
+class MyToolAgent(ToolCallAgent):
+    name = "MyToolAgent"
+    description = "도구를 사용하는 에이전트"
+    
+    available_tools = ToolCollection(
+        PythonExecute(),
+        # 다른 도구 추가
+    )
+    
+    async def step(self) -> str:
+        # 1. think: 다음 행동 결정
+        has_tool_calls = await self.think()
+        
+        # 2. act: 도구 실행
+        if has_tool_calls:
+            result = await self.act()
+            return f"도구 실행 결과: {result}"
+        
+        # 3. 완료 조건 체크
+        last_msg = self.memory.messages[-1]
+        if last_msg.role == "assistant" and "완료" in last_msg.content:
+            self.state = AgentState.FINISHED
+            
+        return "단계 완료"
+```
+
+## 에이전트 설정
+
+### 시스템 프롬프트
+
+에이전트의 역할과 행동을 정의합니다:
+
+```python
+SYSTEM_PROMPT = """
+당신은 {name} 에이전트입니다.
+
+역할: {description}
+
+사용 가능한 도구:
+{tools}
+
+작업 지침:
+1. 사용자 요청을 분석
+2. 적절한 도구 선택
+3. 단계별로 실행
+4. 결과 확인 및 보고
+"""
+```
+
+### 다음 단계 프롬프트
+
+각 단계에서 LLM에게 주는 지시입니다:
+
+```python
+NEXT_STEP_PROMPT = """
+현재 상황을 분석하고 다음 단계를 결정하세요:
+
+1. 목표 달성 여부 확인
+2. 필요한 정보 파악
+3. 적절한 도구 선택
+4. 실행 또는 완료
+
+현재 단계: {current_step}/{max_steps}
+"""
+```
+
+## 에이전트 통신
+
+### 메시지 포맷
+
+```python
+# 사용자 메시지
+Message(role="user", content="작업 요청")
+
+# 시스템 메시지
+Message(role="system", content="시스템 지시")
+
+# 어시스턴트 메시지
+Message(role="assistant", content="응답", tool_calls=[...])
+
+# 도구 결과 메시지
+Message(
+    role="tool",
+    content="결과",
+    name="tool_name",
+    tool_call_id="call_123"
+)
+```
+
+### 도구 호출 흐름
+
+```
+Assistant: {
+  "tool_calls": [{
+    "id": "call_123",
+    "function": {
+      "name": "python_execute",
+      "arguments": "{\"code\": \"print('Hello')\"}"
+    }
+  }]
+}
+    ↓
+Tool: {
+  "role": "tool",
+  "tool_call_id": "call_123",
+  "name": "python_execute",
+  "content": "Hello\n"
+}
+```
+
+## 에이전트 오케스트레이션
+
+### 순차 실행
+
+```python
+agent1 = Manus()
+agent2 = DataAnalysis()
+
+result1 = await agent1.run("데이터 수집")
+result2 = await agent2.run(f"{result1}을 분석해줘")
+```
+
+### 병렬 실행
+
+```python
+async def parallel_agents():
+    task1 = agent1.run("작업1")
+    task2 = agent2.run("작업2")
+    
+    results = await asyncio.gather(task1, task2)
+    return results
+```
+
+### Flow 시스템
+
+```python
+flow = FlowFactory.create_flow(
+    flow_type=FlowType.PLANNING,
+    agents={
+        "manus": Manus(),
+        "analysis": DataAnalysis()
+    }
+)
+result = await flow.execute("복잡한 작업 요청")
+```
+
+## 모범 사례
+
+### 1. 명확한 종료 조건
+
+```python
+if "작업 완료" in response or step_count >= max_steps:
+    self.state = AgentState.FINISHED
+```
+
+### 2. 오류 처리
+
+```python
+try:
+    result = await self.step()
+except Exception as e:
+    self.state = AgentState.ERROR
+    logger.error(f"Error: {e}")
+```
+
+### 3. 메모리 관리
+
+```python
+# 메모리가 너무 커지지 않도록 제한
+self.memory.max_messages = 50
+```
+
+### 4. 프롬프트 최적화
+
+```python
+# 작업별로 특화된 프롬프트 사용
+if task_type == "data_analysis":
+    self.system_prompt = DATA_ANALYSIS_PROMPT
+```
+
+## 다음 단계
+
+- [도구 시스템](/concepts/tools): 에이전트가 사용하는 도구들
+- [메모리 관리](/concepts/memory): 메모리 시스템 심화
+- [워크플로우](/concepts/flows): 멀티 에이전트 조율
+- [API 참조](/api/agent): 에이전트 API 문서

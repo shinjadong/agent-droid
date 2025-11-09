@@ -1,0 +1,317 @@
+---
+title: 아키텍처
+description: OpenManus의 전체 아키텍처와 주요 구성 요소
+---
+
+# 아키텍처
+
+OpenManus는 **모듈식 아키텍처**를 채택하여 유연하고 확장 가능한 AI 에이전트 시스템을 제공합니다.
+
+## 전체 구조
+
+```
+┌──────────────────────────────────────────────────┐
+│              사용자 인터페이스                      │
+│         (CLI / Python API / MCP Server)          │
+└─────────────────┬────────────────────────────────┘
+                  │
+                  ▼
+┌──────────────────────────────────────────────────┐
+│            에이전트 레이어                         │
+│  ┌─────────┐  ┌──────────┐  ┌─────────────┐    │
+│  │ Manus   │  │ MCP      │  │ DataAnalysis│    │
+│  │ Agent   │  │ Agent    │  │ Agent       │    │
+│  └─────────┘  └──────────┘  └─────────────┘    │
+└─────────────────┬────────────────────────────────┘
+                  │
+                  ▼
+┌──────────────────────────────────────────────────┐
+│            코어 시스템                             │
+│  ┌──────┐  ┌──────┐  ┌───────┐  ┌──────────┐  │
+│  │ LLM  │  │ 메모리 │  │ 도구   │  │ 샌드박스 │  │
+│  └──────┘  └──────┘  └───────┘  └──────────┘  │
+└─────────────────┬────────────────────────────────┘
+                  │
+                  ▼
+┌──────────────────────────────────────────────────┐
+│            도구 레이어                             │
+│  ┌──────┐  ┌──────┐  ┌──────┐  ┌──────────┐   │
+│  │Python│  │Browser│  │파일  │  │웹 검색   │   │
+│  │실행  │  │자동화 │  │편집  │  │          │   │
+│  └──────┘  └──────┘  └──────┘  └──────────┘   │
+└─────────────────┬────────────────────────────────┘
+                  │
+                  ▼
+┌──────────────────────────────────────────────────┐
+│          외부 통합 레이어                          │
+│  ┌──────┐  ┌──────┐  ┌───────┐                │
+│  │ MCP  │  │Docker│  │Daytona│                │
+│  │Servers│  │      │  │Sandbox│                │
+│  └──────┘  └──────┘  └───────┘                │
+└──────────────────────────────────────────────────┘
+```
+
+## 주요 구성 요소
+
+### 1. 에이전트 레이어
+
+📖 **에이전트 레이어**
+├─ **정의**: 사용자의 요청을 처리하고 적절한 도구를 선택하여 작업을 실행하는 지능형 오케스트레이터
+├─ **쉬운 비유**: 프로젝트 매니저가 팀원들(도구)에게 작업을 할당하는 것처럼 작업 조율
+├─ **메커니즘**: LLM이 도구 호출 결정 → 도구 실행 → 결과 분석 → 다음 단계 결정 (루프)
+└─ **존재 이유**: 복잡한 작업을 자동으로 분해하고 순서대로 실행하기 위함
+
+#### BaseAgent
+
+모든 에이전트의 기본 클래스로, 다음 기능을 제공합니다:
+
+- **상태 관리**: IDLE, RUNNING, FINISHED, ERROR 상태 전환
+- **메모리 관리**: 대화 히스토리 저장 및 관리
+- **실행 루프**: step 메서드를 반복 호출하여 작업 진행
+- **무한 루프 감지**: 동일한 응답 반복 시 자동 감지 및 처리
+
+```python
+class BaseAgent(BaseModel, ABC):
+    name: str
+    description: Optional[str]
+    system_prompt: Optional[str]
+    next_step_prompt: Optional[str]
+    llm: LLM
+    memory: Memory
+    state: AgentState
+    max_steps: int = 10
+    
+    async def run(self, request: str) -> str:
+        # 메인 실행 루프
+        
+    @abstractmethod
+    async def step(self) -> str:
+        # 단일 실행 단계 (서브클래스에서 구현)
+```
+
+#### ToolCallAgent
+
+도구 호출을 처리하는 에이전트:
+
+- 사용 가능한 도구 목록 관리
+- LLM으로부터 도구 호출 요청 수신
+- 도구 실행 및 결과 수집
+- 결과를 기반으로 다음 작업 결정
+
+#### Manus Agent
+
+범용 작업을 처리하는 주요 에이전트:
+
+- Python 코드 실행
+- 브라우저 자동화
+- 파일 편집
+- 웹 검색
+- MCP 도구 통합
+
+### 2. 코어 시스템
+
+#### LLM 시스템
+
+다양한 LLM 제공자 지원:
+
+- **OpenAI**: GPT-4, GPT-4o, GPT-3.5-turbo
+- **Anthropic**: Claude 3.5, Claude 3
+- **Google**: Gemini Pro, Gemini Flash
+- **Ollama**: 로컬 모델 (Llama 3, Mistral 등)
+- **Azure OpenAI**: 엔터프라이즈 배포
+
+```python
+class LLM:
+    def __init__(self, config_name: str = "default"):
+        # 설정에서 LLM 정보 로드
+        
+    async def chat_completion(
+        self, 
+        messages: List[Message],
+        tools: Optional[List[Dict]] = None,
+        tool_choice: str = "auto"
+    ) -> ChatCompletion:
+        # LLM API 호출
+```
+
+#### 메모리 시스템
+
+📖 **메모리 시스템**
+├─ **정의**: 에이전트가 과거 대화와 작업 내역을 기억하여 일관성 있는 응답 생성
+├─ **쉬운 비유**: 노트에 대화 내용을 기록하여 문맥을 잃지 않고 대화 이어가기
+├─ **메커니즘**: Message 객체들을 리스트로 저장하며 최대 개수 제한으로 메모리 관리
+└─ **존재 이유**: 멀티턴 대화에서 이전 맥락을 유지하여 정확한 작업 수행
+
+```python
+class Memory(BaseModel):
+    messages: List[Message] = []
+    max_messages: int = 100
+    
+    def add_message(self, message: Message) -> None:
+        # 메시지 추가 및 자동 정리
+        
+    def get_recent_messages(self, n: int) -> List[Message]:
+        # 최근 N개 메시지 조회
+```
+
+메시지 타입:
+- `user`: 사용자 입력
+- `system`: 시스템 프롬프트
+- `assistant`: LLM 응답
+- `tool`: 도구 실행 결과
+
+#### 도구 시스템
+
+모든 도구는 `BaseTool`을 상속받습니다:
+
+```python
+class BaseTool(BaseModel, ABC):
+    name: str
+    description: str
+    parameters: Optional[dict]
+    
+    async def execute(self, **kwargs) -> ToolResult
+    
+    def to_param(self) -> Dict:
+        # OpenAI function calling 형식으로 변환
+```
+
+### 3. 도구 레이어
+
+#### 기본 도구
+
+- **PythonExecute**: Python 코드 실행 (샌드박스 또는 로컬)
+- **BrowserUseTool**: Playwright 기반 브라우저 자동화
+- **StrReplaceEditor**: 파일 내용 검색 및 대체
+- **WebSearch**: 다양한 검색 엔진 지원
+- **AskHuman**: 사용자에게 추가 정보 요청
+- **Terminate**: 작업 완료 신호
+
+#### 샌드박스 도구
+
+샌드박스 환경에서 실행되는 특수 도구:
+
+- **SandboxBrowserTool**: 샌드박스 내 브라우저 제어
+- **SandboxFilesTool**: 샌드박스 파일 시스템 접근
+- **SandboxShellTool**: 샌드박스 쉘 명령 실행
+- **SandboxVisionTool**: 샌드박스 화면 캡처
+
+### 4. 실행 환경
+
+#### 샌드박스
+
+📖 **샌드박스 실행**
+├─ **정의**: 격리된 Docker 컨테이너에서 코드를 안전하게 실행
+├─ **쉬운 비유**: 가상 머신처럼 독립된 환경에서 실험하여 본 시스템 보호
+├─ **메커니즘**: Docker API를 통해 컨테이너 생성/실행/삭제를 자동 관리
+└─ **존재 이유**: 신뢰할 수 없는 코드 실행 시 시스템 손상 방지
+
+```python
+class SandboxSettings(BaseModel):
+    use_sandbox: bool = False
+    image: str = "python:3.12-slim"
+    work_dir: str = "/workspace"
+    memory_limit: str = "512m"
+    cpu_limit: float = 1.0
+    timeout: int = 300
+    network_enabled: bool = False
+```
+
+#### Daytona 통합
+
+클라우드 기반 샌드박스 환경:
+
+- VNC 접근 지원
+- 영구 스토리지
+- 리소스 관리
+- 원격 접속
+
+## 데이터 흐름
+
+### 1. 단순 작업 흐름
+
+```
+사용자 → Agent.run()
+          ↓
+     LLM 호출
+          ↓
+     도구 선택
+          ↓
+     도구 실행
+          ↓
+     결과 수집
+          ↓
+     사용자에게 반환
+```
+
+### 2. 멀티 스텝 작업 흐름
+
+```
+사용자 → Agent.run()
+          ↓
+     Step 1: LLM → 도구A 실행 → 결과 메모리 저장
+          ↓
+     Step 2: LLM → 도구B 실행 → 결과 메모리 저장
+          ↓
+     Step 3: LLM → 도구C 실행 → 결과 메모리 저장
+          ↓
+     최종 결과 반환
+```
+
+### 3. 멀티 에이전트 워크플로우
+
+```
+사용자 요청
+    ↓
+PlanningAgent → 작업 분해
+    ↓
+┌───┴───┬────────┐
+│       │        │
+Manus   Data     Browser
+Agent   Analysis Agent
+│       Agent    │
+└───┬───┴────────┘
+    ↓
+결과 통합 및 반환
+```
+
+## 설정 시스템
+
+모든 설정은 `config.toml`에서 관리됩니다:
+
+```toml
+[llm]
+model = "gpt-4o"
+base_url = "https://api.openai.com/v1"
+api_key = "sk-..."
+
+[sandbox]
+use_sandbox = true
+image = "python:3.12-slim"
+memory_limit = "512m"
+
+[browser]
+headless = false
+max_content_length = 2000
+
+[search]
+engine = "Google"
+fallback_engines = ["DuckDuckGo", "Baidu"]
+```
+
+## 확장성
+
+OpenManus는 다음 방법으로 확장 가능합니다:
+
+1. **커스텀 에이전트**: `BaseAgent` 상속
+2. **커스텀 도구**: `BaseTool` 상속
+3. **MCP 통합**: 외부 도구 동적 로드
+4. **워크플로우**: 멀티 에이전트 조율
+5. **플러그인 시스템**: 새로운 LLM 제공자 추가
+
+## 다음 단계
+
+- [에이전트 시스템](/concepts/agents): 에이전트 상세 설명
+- [도구 시스템](/concepts/tools): 도구 개발 가이드
+- [메모리 관리](/concepts/memory): 메모리 시스템 심화
+- [샌드박스](/concepts/sandbox): 안전한 실행 환경

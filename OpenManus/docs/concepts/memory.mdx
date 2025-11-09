@@ -1,0 +1,213 @@
+---
+title: 메모리 시스템
+description: OpenManus의 대화 메모리 관리
+---
+
+# 메모리 시스템
+
+에이전트의 **메모리**는 대화 히스토리와 작업 컨텍스트를 저장하여 일관성 있는 응답을 가능하게 합니다.
+
+📖 **메모리 시스템**
+├─ **정의**: 과거 대화와 작업 내역을 저장하여 문맥을 유지하는 시스템
+├─ **쉬운 비유**: 대화 노트처럼 지금까지의 대화 내용을 기록하여 맥락 파악
+├─ **메커니즘**: Message 객체들을 시간순으로 리스트에 저장하고 LLM에 전달
+└─ **존재 이유**: 멀티턴 대화에서 이전 맥락을 기억하여 정확한 응답 생성
+
+## Memory 클래스
+
+```python
+class Memory(BaseModel):
+    messages: List[Message] = []
+    max_messages: int = 100
+```
+
+### 메시지 추가
+
+```python
+def add_message(self, message: Message) -> None:
+    """메시지 추가 및 자동 정리"""
+    self.messages.append(message)
+    if len(self.messages) > self.max_messages:
+        self.messages = self.messages[-self.max_messages:]
+```
+
+### 최근 메시지 조회
+
+```python
+def get_recent_messages(self, n: int) -> List[Message]:
+    """최근 N개 메시지 반환"""
+    return self.messages[-n:]
+```
+
+## Message 타입
+
+### User Message
+
+사용자의 입력:
+
+```python
+Message.user_message("피보나치 수열을 생성해줘")
+```
+
+### System Message
+
+시스템 프롬프트:
+
+```python
+Message.system_message(
+    "당신은 도움이 되는 AI 어시스턴트입니다."
+)
+```
+
+### Assistant Message
+
+LLM의 응답:
+
+```python
+# 텍스트 응답
+Message.assistant_message("네, 생성하겠습니다.")
+
+# 도구 호출
+Message.from_tool_calls(
+    tool_calls=[...],
+    content="Python 코드를 실행하겠습니다."
+)
+```
+
+### Tool Message
+
+도구 실행 결과:
+
+```python
+Message.tool_message(
+    content="0 1 1 2 3 5 8 13 21 34",
+    name="python_execute",
+    tool_call_id="call_123"
+)
+```
+
+## 대화 흐름 예시
+
+```python
+# 1. 사용자 요청
+memory.add_message(
+    Message.user_message("100까지 소수를 찾아줘")
+)
+
+# 2. Assistant 도구 호출 결정
+memory.add_message(
+    Message.from_tool_calls(
+        tool_calls=[{
+            "id": "call_1",
+            "function": {
+                "name": "python_execute",
+                "arguments": '{"code": "..."}'
+            }
+        }]
+    )
+)
+
+# 3. 도구 실행 결과
+memory.add_message(
+    Message.tool_message(
+        content="[2, 3, 5, 7, 11, 13, ...]",
+        name="python_execute",
+        tool_call_id="call_1"
+    )
+)
+
+# 4. Assistant 최종 응답
+memory.add_message(
+    Message.assistant_message(
+        "100까지의 소수를 찾았습니다: 2, 3, 5, ..."
+    )
+)
+```
+
+## 메모리 관리 전략
+
+### 1. 슬라이딩 윈도우
+
+최근 N개 메시지만 유지:
+
+```python
+memory.max_messages = 50  # 최근 50개 메시지만
+```
+
+### 2. 요약 전략
+
+오래된 메시지를 요약하여 압축:
+
+```python
+async def summarize_old_messages(memory: Memory, threshold: int = 20):
+    if len(memory.messages) > threshold:
+        old_messages = memory.messages[:threshold]
+        summary = await llm.summarize(old_messages)
+        
+        # 요약으로 대체
+        memory.messages = [
+            Message.system_message(f"이전 대화 요약: {summary}")
+        ] + memory.messages[threshold:]
+```
+
+### 3. 중요도 기반
+
+중요한 메시지만 유지:
+
+```python
+def filter_important(messages: List[Message]) -> List[Message]:
+    important = []
+    for msg in messages:
+        if is_important(msg):
+            important.append(msg)
+    return important
+```
+
+## 이미지 지원
+
+메시지에 이미지를 포함할 수 있습니다:
+
+```python
+# 이미지와 함께 메시지
+Message.user_message(
+    "이 이미지를 분석해줘",
+    base64_image="data:image/png;base64,..."
+)
+
+# 스크린샷 결과
+Message.tool_message(
+    content="스크린샷 캡처 완료",
+    name="browser_screenshot",
+    tool_call_id="call_123",
+    base64_image="data:image/png;base64,..."
+)
+```
+
+## 컨텍스트 윈도우 관리
+
+LLM의 토큰 제한을 고려한 메모리 관리:
+
+```python
+def trim_to_context_window(
+    messages: List[Message],
+    max_tokens: int = 4096
+) -> List[Message]:
+    total_tokens = 0
+    trimmed = []
+    
+    # 최신 메시지부터 역순으로
+    for msg in reversed(messages):
+        msg_tokens = count_tokens(msg.content)
+        if total_tokens + msg_tokens > max_tokens:
+            break
+        trimmed.insert(0, msg)
+        total_tokens += msg_tokens
+    
+    return trimmed
+```
+
+## 다음 단계
+
+- [에이전트 시스템](/concepts/agents): 메모리를 사용하는 에이전트
+- [LLM 통합](/guides/llm-configuration): LLM 설정
+- [API 참조](/api/memory): Memory API 문서

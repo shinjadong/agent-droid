@@ -1,0 +1,36 @@
+# Mintlify 빌드 결과물
+.mintlify/
+_site/
+.docusaurus/
+build/
+dist/
+
+# 의존성
+node_modules/
+.pnpm-store/
+
+# 환경 변수
+.env
+.env.local
+.env.production
+
+# 로그
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 임시 파일
+*.tmp
+*.temp
+.cache/

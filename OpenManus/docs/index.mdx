@@ -1,0 +1,189 @@
+---
+title: 'OpenManus 문서'
+description: '범용 AI 에이전트 프레임워크'
+---
+
+# OpenManus 문서에 오신 것을 환영합니다
+
+OpenManus는 자율적으로 작업을 수행하는 AI 에이전트를 쉽게 구축할 수 있는 범용 프레임워크입니다.
+
+## 빠른 시작
+
+OpenManus를 처음 사용하시나요? 여기서 시작하세요:
+
+<CardGroup cols={2}>
+  <Card title="개요" icon="book" href="/docs/overview">
+    OpenManus의 핵심 개념과 기능 이해하기
+  </Card>
+  <Card title="빠른 시작" icon="rocket" href="/docs/quickstart">
+    5분 안에 첫 에이전트 만들기
+  </Card>
+  <Card title="시작하기 가이드" icon="play" href="/docs/guides/getting-started">
+    단계별 튜토리얼로 학습하기
+  </Card>
+  <Card title="예제" icon="code" href="/docs/guides/custom-agent">
+    실제 사용 사례로 배우기
+  </Card>
+</CardGroup>
+
+## 핵심 개념
+
+OpenManus의 주요 구성 요소를 이해하세요:
+
+<CardGroup cols={3}>
+  <Card title="아키텍처" icon="sitemap" href="/docs/concepts/architecture">
+    시스템 전체 구조
+  </Card>
+  <Card title="에이전트" icon="robot" href="/docs/concepts/agents">
+    자율 작업 실행 주체
+  </Card>
+  <Card title="도구" icon="wrench" href="/docs/concepts/tools">
+    에이전트가 사용하는 기능
+  </Card>
+  <Card title="메모리" icon="brain" href="/docs/concepts/memory">
+    대화 이력 관리
+  </Card>
+  <Card title="플로우" icon="diagram-project" href="/docs/concepts/flows">
+    멀티 에이전트 조정
+  </Card>
+  <Card title="샌드박스" icon="box" href="/docs/concepts/sandbox">
+    안전한 코드 실행
+  </Card>
+</CardGroup>
+
+## 주요 기능
+
+OpenManus가 제공하는 강력한 기능들:
+
+<CardGroup cols={2}>
+  <Card title="MCP 통합" icon="plug" href="/docs/features/mcp-integration">
+    외부 도구 연결
+  </Card>
+  <Card title="브라우저 자동화" icon="browser" href="/docs/features/browser-automation">
+    웹 스크래핑 및 상호작용
+  </Card>
+  <Card title="데이터 분석" icon="chart-line" href="/docs/features/data-analysis">
+    pandas, numpy 활용
+  </Card>
+  <Card title="웹 검색" icon="magnifying-glass" href="/docs/features/web-search">
+    실시간 정보 수집
+  </Card>
+  <Card title="파일 편집" icon="file-code" href="/docs/features/file-editing">
+    자동 코드 수정
+  </Card>
+</CardGroup>
+
+## 가이드
+
+실전 프로젝트를 위한 자세한 가이드:
+
+<CardGroup cols={3}>
+  <Card title="시작하기" icon="flag-checkered" href="/docs/guides/getting-started">
+    기본부터 시작
+  </Card>
+  <Card title="커스텀 에이전트" icon="user-gear" href="/docs/guides/building-custom-agent">
+    나만의 에이전트 만들기
+  </Card>
+  <Card title="멀티 에이전트" icon="users" href="/docs/guides/multi-agent-workflows">
+    여러 에이전트 협업
+  </Card>
+</CardGroup>
+
+## API 참조
+
+전체 API 문서:
+
+<CardGroup cols={2}>
+  <Card title="Agents API" icon="robot" href="/docs/api/agents">
+    에이전트 클래스 참조
+  </Card>
+  <Card title="Tools API" icon="wrench" href="/docs/api/tools">
+    도구 시스템 참조
+  </Card>
+  <Card title="Flows API" icon="diagram-project" href="/docs/api/flows">
+    워크플로우 참조
+  </Card>
+  <Card title="Config API" icon="gear" href="/docs/api/config">
+    설정 시스템 참조
+  </Card>
+  <Card title="Schema API" icon="database" href="/docs/api/schema">
+    데이터 구조 참조
+  </Card>
+</CardGroup>
+
+## 예제 프로젝트
+
+OpenManus로 무엇을 만들 수 있을까요?
+
+### 데이터 분석 에이전트
+```python
+from app.agent.data_analysis import DataAnalysis
+
+agent = DataAnalysis()
+result = await agent.run(
+    "sales.csv 파일을 분석하고 월별 매출 트렌드를 시각화해주세요"
+)
+```
+
+### 웹 자동화 에이전트
+```python
+from app.agent.manus import Manus
+
+agent = Manus()
+result = await agent.run(
+    "GitHub에서 인기 있는 Python 프로젝트 상위 10개를 조사하고 CSV로 저장해주세요"
+)
+```
+
+### 멀티 에이전트 워크플로우
+```python
+from app.flow.flow_factory import FlowFactory, FlowType
+
+flow = FlowFactory.create_flow(
+    flow_type=FlowType.PLANNING,
+    agents={
+        "web_agent": Manus(),
+        "data_agent": DataAnalysis()
+    }
+)
+
+result = await flow.execute(
+    "경쟁사 웹사이트에서 가격 정보를 수집하고 분석 보고서를 작성해주세요"
+)
+```
+
+## 커뮤니티 및 지원
+
+도움이 필요하신가요?
+
+<CardGroup cols={2}>
+  <Card title="GitHub" icon="github" href="https://github.com/gpt-open/OpenManus">
+    소스 코드 및 이슈 트래킹
+  </Card>
+  <Card title="기여하기" icon="code-pull-request" href="https://github.com/gpt-open/OpenManus/blob/main/CONTRIBUTING.md">
+    OpenManus 개선에 참여하기
+  </Card>
+</CardGroup>
+
+## 다음 단계
+
+<Steps>
+  <Step title="설치">
+    [빠른 시작](/docs/quickstart)에서 OpenManus 설치하기
+  </Step>
+  <Step title="학습">
+    [핵심 개념](/docs/concepts/architecture)으로 기본 이해하기
+  </Step>
+  <Step title="구축">
+    [가이드](/docs/guides/building-custom-agent)로 첫 프로젝트 만들기
+  </Step>
+  <Step title="확장">
+    [API 참조](/docs/api/agents)로 고급 기능 활용하기
+  </Step>
+</Steps>
+
+---
+
+## 라이선스
+
+OpenManus는 [MIT 라이선스](https://github.com/gpt-open/OpenManus/blob/main/LICENSE) 하에 배포됩니다.

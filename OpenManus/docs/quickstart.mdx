@@ -1,0 +1,218 @@
+---
+title: 빠른 시작
+description: 5분 안에 OpenManus 시작하기
+---
+
+# 빠른 시작
+
+이 가이드는 OpenManus를 빠르게 설치하고 첫 번째 작업을 실행하는 방법을 안내합니다.
+
+## 사전 요구사항
+
+- **Python 3.12 이상**
+- **Git** (저장소 클론용)
+- **API 키**: OpenAI, Anthropic, Google 등의 LLM 서비스 API 키
+
+## 설치 방법
+
+OpenManus는 두 가지 설치 방법을 제공합니다. **방법 2 (uv 사용)** 이 더 빠른 설치와 효율적인 종속성 관리를 위해 권장됩니다.
+
+<Tabs>
+  <Tab title="uv 사용 (권장)">
+    
+### 1. uv 설치
+
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+### 2. 저장소 클론
+
+```bash
+git clone https://github.com/FoundationAgents/OpenManus.git
+cd OpenManus
+```
+
+### 3. 가상 환경 생성 및 활성화
+
+```bash
+uv venv --python 3.12
+source .venv/bin/activate  # Unix/macOS
+# Windows의 경우: .venv\Scripts\activate
+```
+
+### 4. 의존성 설치
+
+```bash
+uv pip install -r requirements.txt
+```
+
+  </Tab>
+
+  <Tab title="conda 사용">
+
+### 1. Conda 환경 생성
+
+```bash
+conda create -n open_manus python=3.12
+conda activate open_manus
+```
+
+### 2. 저장소 클론
+
+```bash
+git clone https://github.com/FoundationAgents/OpenManus.git
+cd OpenManus
+```
+
+### 3. 의존성 설치
+
+```bash
+pip install -r requirements.txt
+```
+
+  </Tab>
+</Tabs>
+
+### 브라우저 자동화 도구 설치 (선택사항)
+
+브라우저 자동화 기능을 사용하려면 Playwright를 설치하세요:
+
+```bash
+playwright install
+```
+
+## 설정
+
+### 1. 설정 파일 생성
+
+```bash
+cp config/config.example.toml config/config.toml
+```
+
+### 2. API 키 설정
+
+`config/config.toml` 파일을 열고 사용할 LLM 서비스의 API 키를 입력하세요:
+
+```toml
+# 전역 LLM 설정
+[llm]
+model = "gpt-4o"
+base_url = "https://api.openai.com/v1"
+api_key = "sk-..."  # 실제 API 키로 교체
+max_tokens = 4096
+temperature = 0.0
+```
+
+<Info>
+다양한 LLM 제공자를 위한 예제 설정 파일들이 `config/` 디렉토리에 있습니다:
+- `config.example-model-anthropic.toml` - Anthropic (Claude)
+- `config.example-model-google.toml` - Google (Gemini)
+- `config.example-model-ollama.toml` - Ollama (로컬)
+- `config.example-model-azure.toml` - Azure OpenAI
+</Info>
+
+## 첫 번째 작업 실행
+
+### 기본 모드
+
+가장 간단한 방법으로 OpenManus를 실행하세요:
+
+```bash
+python main.py
+```
+
+프롬프트가 나타나면 작업을 입력하세요:
+
+```
+Enter your prompt: 현재 디렉토리의 모든 .py 파일을 찾아서 그 내용을 요약해줘
+```
+
+### MCP 모드
+
+MCP 도구를 사용하려면:
+
+```bash
+python run_mcp.py
+```
+
+### 멀티 에이전트 모드
+
+여러 에이전트가 협력하는 복잡한 작업을 위해:
+
+```bash
+python run_flow.py
+```
+
+## 예제 작업들
+
+### 데이터 분석
+
+```bash
+python main.py --prompt "sales_data.csv 파일을 분석하고 월별 매출 추이 그래프를 생성해줘"
+```
+
+### 웹 검색 및 요약
+
+```bash
+python main.py --prompt "2024년 AI 트렌드를 웹에서 검색하고 3가지 주요 트렌드로 요약해줘"
+```
+
+### 코드 리팩토링
+
+```bash
+python main.py --prompt "app/ 디렉토리의 모든 Python 파일에서 print 문을 logger로 변경해줘"
+```
+
+### 브라우저 자동화
+
+```bash
+python main.py --prompt "Google에서 'OpenManus'를 검색하고 상위 5개 결과의 제목을 가져와줘"
+```
+
+## 다음 단계
+
+<CardGroup cols={2}>
+  <Card title="핵심 개념" icon="book" href="/concepts/architecture">
+    에이전트, 도구, 메모리 시스템 이해하기
+  </Card>
+  <Card title="도구 시스템" icon="wrench" href="/concepts/tools">
+    사용 가능한 도구들과 커스텀 도구 만들기
+  </Card>
+  <Card title="MCP 통합" icon="plug" href="/features/mcp-integration">
+    외부 도구를 MCP로 연결하기
+  </Card>
+  <Card title="설정 가이드" icon="gear" href="/guides/configuration">
+    상세한 설정 옵션 알아보기
+  </Card>
+</CardGroup>
+
+## 문제 해결
+
+### ImportError 발생 시
+
+```bash
+# 의존성 재설치
+pip install -r requirements.txt --force-reinstall
+```
+
+### API 키 관련 오류
+
+설정 파일에 올바른 API 키가 입력되었는지 확인하세요:
+
+```bash
+cat config/config.toml | grep api_key
+```
+
+### 브라우저 자동화 실패
+
+Playwright 브라우저가 설치되었는지 확인하세요:
+
+```bash
+playwright install
+```
+
+### 더 많은 도움이 필요하신가요?
+
+- [GitHub Issues](https://github.com/FoundationAgents/OpenManus/issues)
+- [Discord 커뮤니티](https://discord.gg/DYn29wFk9z)

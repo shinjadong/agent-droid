@@ -1,0 +1,112 @@
+{
+  "name": "OpenManus",
+  "logo": {
+    "dark": "/logo/dark.svg",
+    "light": "/logo/light.svg"
+  },
+  "favicon": "/favicon.svg",
+  "colors": {
+    "primary": "#0D9373",
+    "light": "#07C983",
+    "dark": "#0D9373",
+    "anchors": {
+      "from": "#0D9373",
+      "to": "#07C983"
+    }
+  },
+  "topbarLinks": [
+    {
+      "name": "GitHub",
+      "url": "https://github.com/gpt-open/OpenManus"
+    }
+  ],
+  "topbarCtaButton": {
+    "name": "시작하기",
+    "url": "/docs/quickstart"
+  },
+  "tabs": [
+    {
+      "name": "API 참조",
+      "url": "api"
+    },
+    {
+      "name": "가이드",
+      "url": "guides"
+    }
+  ],
+  "anchors": [
+    {
+      "name": "GitHub",
+      "icon": "github",
+      "url": "https://github.com/gpt-open/OpenManus"
+    },
+    {
+      "name": "커뮤니티",
+      "icon": "discord",
+      "url": "https://github.com/gpt-open/OpenManus/discussions"
+    }
+  ],
+  "navigation": [
+    {
+      "group": "시작하기",
+      "pages": [
+        "index",
+        "overview",
+        "quickstart"
+      ]
+    },
+    {
+      "group": "핵심 개념",
+      "pages": [
+        "concepts/architecture",
+        "concepts/agents",
+        "concepts/tools",
+        "concepts/memory",
+        "concepts/flows",
+        "concepts/sandbox"
+      ]
+    },
+    {
+      "group": "주요 기능",
+      "pages": [
+        "features/mcp-integration",
+        "features/browser-automation",
+        "features/data-analysis",
+        "features/web-search",
+        "features/file-editing"
+      ]
+    },
+    {
+      "group": "가이드",
+      "pages": [
+        "guides/getting-started",
+        "guides/building-custom-agent",
+        "guides/multi-agent-workflows"
+      ]
+    },
+    {
+      "group": "API 참조",
+      "pages": [
+        "api/agents",
+        "api/tools",
+        "api/flows",
+        "api/config",
+        "api/schema"
+      ]
+    }
+  ],
+  "footerSocials": {
+    "github": "https://github.com/gpt-open/OpenManus"
+  },
+  "backgroundImage": "/background.png",
+  "analytics": {
+    "ga4": {
+      "measurementId": "G-XXXXXXXXXX"
+    }
+  },
+  "feedback": {
+    "thumbsRating": true,
+    "suggestEdit": true,
+    "raiseIssue": true
+  }
+}

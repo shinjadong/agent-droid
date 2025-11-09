@@ -1,0 +1,27 @@
+{
+  "name": "openmanus-docs",
+  "version": "1.0.0",
+  "description": "OpenManus 프레임워크 문서",
+  "scripts": {
+    "dev": "mintlify dev",
+    "build": "mintlify build",
+    "preview": "mintlify preview",
+    "install-mintlify": "npm install -g mintlify"
+  },
+  "keywords": [
+    "openmanus",
+    "ai",
+    "agent",
+    "documentation"
+  ],
+  "author": "OpenManus Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gpt-open/OpenManus.git",
+    "directory": "docs"
+  },
+  "devDependencies": {
+    "mintlify": "^4.0.0"
+  }
+}

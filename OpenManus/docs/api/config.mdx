@@ -1,0 +1,542 @@
+---
+title: 'Config API'
+description: 'OpenManus 설정 시스템 API 참조'
+---
+
+# Config API 참조
+
+OpenManus의 설정 시스템은 LLM, 샌드박스, 브라우저 등 다양한 구성 요소를 관리합니다.
+
+## 전역 설정 객체
+
+```python
+from app.config import config
+```
+
+전역 `config` 객체는 모든 설정에 접근할 수 있는 중앙 설정 인스턴스입니다.
+
+```python
+# LLM 설정 접근
+llm_config = config.llm
+
+# 샌드박스 설정 접근
+sandbox_config = config.sandbox
+
+# 브라우저 설정 접근
+browser_config = config.browser
+```
+
+---
+
+## LLMSettings
+
+LLM(Large Language Model) 관련 설정을 관리하는 클래스입니다.
+
+```python
+from app.config import LLMSettings
+```
+
+### 클래스 정의
+
+```python
+class LLMSettings(BaseSettings):
+    """LLM 설정"""
+
+    provider: str
+    model: str
+    api_key: str
+    base_url: Optional[str]
+    temperature: float
+    max_tokens: int
+    top_p: float
+```
+
+### 필드
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `provider` | str | "openai" | LLM 제공자 (openai, anthropic, google, ollama) |
+| `model` | str | "gpt-4o" | 사용할 모델 이름 |
+| `api_key` | str | 환경변수 | API 키 |
+| `base_url` | Optional[str] | None | 커스텀 API 엔드포인트 |
+| `temperature` | float | 0.0 | 응답 다양성 (0.0~2.0) |
+| `max_tokens` | int | 16000 | 최대 토큰 수 |
+| `top_p` | float | 1.0 | 누적 확률 임계값 |
+
+### 환경 변수
+
+설정은 다음 환경 변수로 재정의할 수 있습니다:
+
+- `LLM_PROVIDER`: LLM 제공자
+- `LLM_MODEL`: 모델 이름
+- `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / `GOOGLE_API_KEY`: API 키
+- `LLM_BASE_URL`: 커스텀 API URL
+- `LLM_TEMPERATURE`: 온도 설정
+- `LLM_MAX_TOKENS`: 최대 토큰 수
+- `LLM_TOP_P`: Top-p 샘플링 값
+
+### 사용 예제
+
+```python
+from app.config import config
+
+# 설정 접근
+print(f"Provider: {config.llm.provider}")
+print(f"Model: {config.llm.model}")
+print(f"Temperature: {config.llm.temperature}")
+
+# 프로그래밍 방식으로 설정 변경
+config.llm.temperature = 0.7
+config.llm.max_tokens = 8000
+```
+
+---
+
+## SandboxSettings
+
+코드 실행 샌드박스 관련 설정입니다.
+
+```python
+from app.config import SandboxSettings
+```
+
+### 클래스 정의
+
+```python
+class SandboxSettings(BaseSettings):
+    """샌드박스 설정"""
+
+    enabled: bool
+    timeout: int
+    memory_limit: str
+    cpu_limit: str
+    image: str
+    keep_template: bool
+```
+
+### 필드
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `enabled` | bool | True | 샌드박스 활성화 여부 |
+| `timeout` | int | 300 | 실행 제한 시간 (초) |
+| `memory_limit` | str | "512m" | 메모리 제한 |
+| `cpu_limit` | str | "1.0" | CPU 제한 |
+| `image` | str | "python:3.12-slim" | Docker 이미지 |
+| `keep_template` | bool | False | 템플릿 컨테이너 유지 여부 |
+
+### 환경 변수
+
+- `SANDBOX_ENABLED`: 샌드박스 활성화/비활성화
+- `SANDBOX_TIMEOUT`: 실행 타임아웃 (초)
+- `SANDBOX_MEMORY_LIMIT`: 메모리 제한
+- `SANDBOX_CPU_LIMIT`: CPU 제한
+- `SANDBOX_IMAGE`: Docker 이미지 이름
+- `SANDBOX_KEEP_TEMPLATE`: 템플릿 유지 여부
+
+### 사용 예제
+
+```python
+from app.config import config
+
+# 샌드박스 설정 확인
+if config.sandbox.enabled:
+    print(f"Timeout: {config.sandbox.timeout}s")
+    print(f"Memory: {config.sandbox.memory_limit}")
+    print(f"Image: {config.sandbox.image}")
+
+# 설정 변경
+config.sandbox.timeout = 600  # 10분으로 증가
+config.sandbox.memory_limit = "1g"  # 1GB로 증가
+```
+
+---
+
+## BrowserSettings
+
+브라우저 자동화 관련 설정입니다.
+
+```python
+from app.config import BrowserSettings
+```
+
+### 클래스 정의
+
+```python
+class BrowserSettings(BaseSettings):
+    """브라우저 설정"""
+
+    headless: bool
+    timeout: int
+    window_width: int
+    window_height: int
+```
+
+### 필드
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `headless` | bool | True | 헤드리스 모드 여부 |
+| `timeout` | int | 30000 | 페이지 로딩 타임아웃 (ms) |
+| `window_width` | int | 1280 | 브라우저 창 너비 |
+| `window_height` | int | 720 | 브라우저 창 높이 |
+
+### 환경 변수
+
+- `BROWSER_HEADLESS`: 헤드리스 모드 설정
+- `BROWSER_TIMEOUT`: 타임아웃 설정 (밀리초)
+- `BROWSER_WINDOW_WIDTH`: 창 너비
+- `BROWSER_WINDOW_HEIGHT`: 창 높이
+
+### 사용 예제
+
+```python
+from app.config import config
+
+# 브라우저 설정 확인
+print(f"Headless: {config.browser.headless}")
+print(f"Timeout: {config.browser.timeout}ms")
+print(f"Window: {config.browser.window_width}x{config.browser.window_height}")
+
+# 디버깅을 위해 헤드리스 모드 비활성화
+config.browser.headless = False
+```
+
+---
+
+## MCPSettings
+
+MCP(Model Context Protocol) 서버 설정입니다.
+
+```python
+from app.config import MCPSettings
+```
+
+### 클래스 정의
+
+```python
+class MCPSettings(BaseSettings):
+    """MCP 설정"""
+
+    config_path: str
+```
+
+### 필드
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `config_path` | str | "~/.config/mcp/mcp.json" | MCP 설정 파일 경로 |
+
+### 환경 변수
+
+- `MCP_CONFIG_PATH`: MCP 설정 파일 위치
+
+### 사용 예제
+
+```python
+from app.config import config
+
+# MCP 설정 파일 경로 확인
+print(f"MCP Config: {config.mcp.config_path}")
+
+# 커스텀 경로 설정
+config.mcp.config_path = "/custom/path/mcp.json"
+```
+
+---
+
+## RunFlowConfig
+
+플로우 실행 관련 설정입니다.
+
+```python
+from app.config import RunFlowConfig
+```
+
+### 클래스 정의
+
+```python
+class RunFlowConfig(BaseSettings):
+    """플로우 실행 설정"""
+
+    use_data_analysis_agent: bool
+```
+
+### 필드
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `use_data_analysis_agent` | bool | False | DataAnalysis 에이전트 사용 여부 |
+
+### 환경 변수
+
+- `RUN_FLOW_USE_DATA_ANALYSIS_AGENT`: DataAnalysis 에이전트 활성화
+
+### 사용 예제
+
+```python
+from app.config import config
+
+# DataAnalysis 에이전트 활성화
+config.run_flow_config.use_data_analysis_agent = True
+```
+
+---
+
+## Config (메인 설정 클래스)
+
+모든 설정을 통합하는 메인 설정 클래스입니다.
+
+```python
+from app.config import Config
+```
+
+### 클래스 정의
+
+```python
+class Config(BaseSettings):
+    """전체 애플리케이션 설정"""
+
+    llm: LLMSettings
+    sandbox: SandboxSettings
+    browser: BrowserSettings
+    mcp: MCPSettings
+    run_flow_config: RunFlowConfig
+    log_level: str
+```
+
+### 필드
+
+| 필드 | 타입 | 기본값 | 설명 |
+|------|------|--------|------|
+| `llm` | LLMSettings | LLMSettings() | LLM 설정 |
+| `sandbox` | SandboxSettings | SandboxSettings() | 샌드박스 설정 |
+| `browser` | BrowserSettings | BrowserSettings() | 브라우저 설정 |
+| `mcp` | MCPSettings | MCPSettings() | MCP 설정 |
+| `run_flow_config` | RunFlowConfig | RunFlowConfig() | 플로우 설정 |
+| `log_level` | str | "INFO" | 로그 레벨 |
+
+### 환경 변수
+
+- `LOG_LEVEL`: 로그 레벨 (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+
+---
+
+## 설정 파일
+
+OpenManus는 YAML 형식의 설정 파일을 지원합니다.
+
+### config.yaml 예제
+
+```yaml
+llm:
+  provider: "openai"
+  model: "gpt-4o"
+  temperature: 0.0
+  max_tokens: 16000
+
+sandbox:
+  enabled: true
+  timeout: 300
+  memory_limit: "512m"
+  cpu_limit: "1.0"
+  image: "python:3.12-slim"
+
+browser:
+  headless: true
+  timeout: 30000
+  window_width: 1280
+  window_height: 720
+
+mcp:
+  config_path: "~/.config/mcp/mcp.json"
+
+run_flow_config:
+  use_data_analysis_agent: false
+
+log_level: "INFO"
+```
+
+### 설정 파일 로드
+
+```python
+import yaml
+from app.config import config
+
+# YAML 파일에서 설정 로드
+with open("config.yaml", "r") as f:
+    config_dict = yaml.safe_load(f)
+
+# 설정 적용
+config.llm.provider = config_dict["llm"]["provider"]
+config.llm.model = config_dict["llm"]["model"]
+# ... 기타 설정
+```
+
+---
+
+## 사용 예제
+
+### 기본 설정 사용
+
+```python
+from app.config import config
+from app.llm import LLM
+
+# config 객체를 사용하여 LLM 초기화
+llm = LLM()  # 자동으로 config.llm 설정 사용
+
+# 설정 확인
+print(f"Using {config.llm.provider} - {config.llm.model}")
+```
+
+### 환경별 설정
+
+```python
+import os
+from app.config import config
+
+# 개발 환경
+if os.getenv("ENV") == "development":
+    config.llm.temperature = 0.7
+    config.browser.headless = False
+    config.log_level = "DEBUG"
+
+# 프로덕션 환경
+elif os.getenv("ENV") == "production":
+    config.llm.temperature = 0.0
+    config.browser.headless = True
+    config.log_level = "INFO"
+    config.sandbox.keep_template = True
+```
+
+### 런타임 설정 변경
+
+```python
+from app.config import config
+from app.agent.manus import Manus
+
+# 실험을 위해 설정 변경
+config.llm.temperature = 0.9
+config.llm.max_tokens = 8000
+
+# 변경된 설정으로 에이전트 생성
+agent = Manus()
+
+# 작업 실행
+result = await agent.run("창의적인 스토리 작성")
+
+# 설정 복원
+config.llm.temperature = 0.0
+config.llm.max_tokens = 16000
+```
+
+### 다중 LLM 제공자 사용
+
+```python
+from app.config import config
+from app.llm import LLM
+
+# OpenAI 설정
+config.llm.provider = "openai"
+config.llm.model = "gpt-4o"
+llm_openai = LLM()
+
+# Anthropic 설정
+config.llm.provider = "anthropic"
+config.llm.model = "claude-3-5-sonnet-20241022"
+config.llm.api_key = os.getenv("ANTHROPIC_API_KEY")
+llm_anthropic = LLM()
+
+# 각 LLM 사용
+response1 = await llm_openai.ask([{"role": "user", "content": "안녕하세요"}])
+response2 = await llm_anthropic.ask([{"role": "user", "content": "안녕하세요"}])
+```
+
+### 샌드박스 리소스 조정
+
+```python
+from app.config import config
+from app.tool import PythonExecute
+
+# 큰 데이터 처리를 위해 리소스 증가
+config.sandbox.memory_limit = "2g"
+config.sandbox.cpu_limit = "2.0"
+config.sandbox.timeout = 600
+
+# Python 실행 도구 사용
+python_tool = PythonExecute()
+result = await python_tool.execute(
+    code="import pandas as pd; df = pd.read_csv('large_file.csv'); print(df.describe())"
+)
+```
+
+---
+
+## 모범 사례
+
+### 1. 환경 변수 사용
+
+```python
+# .env 파일
+OPENAI_API_KEY=sk-...
+LLM_MODEL=gpt-4o
+LLM_TEMPERATURE=0.0
+SANDBOX_TIMEOUT=600
+BROWSER_HEADLESS=true
+
+# Python 코드
+from app.config import config
+
+# 환경 변수가 자동으로 로드됨
+print(config.llm.model)  # "gpt-4o"
+```
+
+### 2. 설정 검증
+
+```python
+from app.config import config
+
+def validate_config():
+    """설정 유효성 검사"""
+
+    # API 키 확인
+    if not config.llm.api_key:
+        raise ValueError("LLM API key가 설정되지 않았습니다")
+
+    # 샌드박스 설정 확인
+    if config.sandbox.enabled and config.sandbox.timeout < 60:
+        print("경고: 샌드박스 타임아웃이 너무 짧습니다")
+
+    # 브라우저 설정 확인
+    if config.browser.timeout < 10000:
+        print("경고: 브라우저 타임아웃이 너무 짧습니다")
+
+# 애플리케이션 시작 시 검증
+validate_config()
+```
+
+### 3. 설정 백업 및 복원
+
+```python
+from app.config import config
+import copy
+
+# 설정 백업
+backup_config = copy.deepcopy(config)
+
+# 실험적 설정 변경
+config.llm.temperature = 1.5
+# ... 실험 실행
+
+# 설정 복원
+config.llm = backup_config.llm
+```
+
+---
+
+## 참고
+
+- 관련 문서: [빠른 시작](/docs/quickstart)
+- LLM API: [LLM 클라이언트](/docs/api/llm)
+- 샌드박스: [샌드박스 개념](/docs/concepts/sandbox)

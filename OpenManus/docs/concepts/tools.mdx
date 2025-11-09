@@ -1,0 +1,541 @@
+---
+title: 도구 시스템
+description: OpenManus의 도구 아키텍처와 사용 가능한 도구들
+---
+
+# 도구 시스템
+
+**도구(Tool)** 는 에이전트가 외부 세계와 상호작용하기 위해 사용하는 기능 단위입니다.
+
+📖 **도구(Tool)**
+├─ **정의**: 에이전트가 특정 작업을 수행하기 위해 호출할 수 있는 함수나 API
+├─ **쉬운 비유**: 직원이 사용하는 작업 도구 (계산기, 전화, 검색엔진)와 같은 개념
+├─ **메커니즘**: LLM이 도구 이름과 파라미터를 JSON으로 반환하면 Python 함수 실행
+└─ **존재 이유**: LLM이 직접 할 수 없는 작업(코드 실행, 파일 수정, 웹 검색)을 수행
+
+## 도구 아키텍처
+
+### BaseTool
+
+모든 도구의 기본 클래스입니다:
+
+```python
+class BaseTool(BaseModel, ABC):
+    name: str                    # 도구 이름
+    description: str             # 도구 설명
+    parameters: Optional[dict]   # JSON Schema 파라미터
+    
+    @abstractmethod
+    async def execute(self, **kwargs) -> ToolResult:
+        """도구 실행 로직"""
+        pass
+    
+    def to_param(self) -> Dict:
+        """OpenAI function calling 형식으로 변환"""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters
+            }
+        }
+```
+
+### ToolResult
+
+도구 실행 결과를 담는 클래스입니다:
+
+```python
+class ToolResult(BaseModel):
+    output: Optional[str]         # 출력 텍스트
+    error: Optional[str]          # 에러 메시지
+    base64_image: Optional[str]   # 이미지 (스크린샷 등)
+    system: Optional[str]         # 시스템 메시지
+```
+
+## 기본 도구
+
+### 1. PythonExecute
+
+Python 코드를 실행합니다.
+
+```python
+class PythonExecute(BaseTool):
+    name = "python_execute"
+    description = "Python 코드 실행"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "code": {
+                "type": "string",
+                "description": "실행할 Python 코드"
+            }
+        },
+        "required": ["code"]
+    }
+```
+
+**사용 예시**:
+
+```python
+# 피보나치 수열 생성
+code = """
+def fibonacci(n):
+    a, b = 0, 1
+    for _ in range(n):
+        print(a, end=' ')
+        a, b = b, a + b
+fibonacci(10)
+"""
+
+result = await python_execute.execute(code=code)
+# 출력: 0 1 1 2 3 5 8 13 21 34
+```
+
+**특징**:
+- 샌드박스 또는 로컬 실행
+- stdout/stderr 캡처
+- 타임아웃 설정
+- 의존성 자동 설치 (pip)
+
+### 2. BrowserUseTool
+
+브라우저를 자동으로 제어합니다.
+
+```python
+class BrowserUseTool(BaseTool):
+    name = "browser_use"
+    description = "웹 브라우저 자동화"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "action": {
+                "type": "string",
+                "enum": ["goto", "click", "type", "screenshot"]
+            },
+            "url": {"type": "string"},
+            "selector": {"type": "string"},
+            "text": {"type": "string"}
+        }
+    }
+```
+
+**사용 예시**:
+
+```python
+# 웹 페이지 방문 및 스크린샷
+await browser.execute(action="goto", url="https://example.com")
+await browser.execute(action="screenshot")
+```
+
+**기능**:
+- 페이지 탐색
+- 요소 클릭
+- 텍스트 입력
+- 스크린샷 캡처
+- JavaScript 실행
+
+### 3. StrReplaceEditor
+
+파일 내용을 검색하고 대체합니다.
+
+```python
+class StrReplaceEditor(BaseTool):
+    name = "str_replace_editor"
+    description = "파일 내용 검색 및 대체"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "command": {
+                "enum": ["view", "str_replace", "insert", "create"]
+            },
+            "path": {"type": "string"},
+            "old_str": {"type": "string"},
+            "new_str": {"type": "string"}
+        }
+    }
+```
+
+**사용 예시**:
+
+```python
+# 파일에서 문자열 대체
+await editor.execute(
+    command="str_replace",
+    path="app/main.py",
+    old_str="print('Hello')",
+    new_str="logger.info('Hello')"
+)
+```
+
+### 4. WebSearch
+
+웹 검색을 수행합니다.
+
+```python
+class WebSearch(BaseTool):
+    name = "web_search"
+    description = "웹 검색 엔진으로 정보 검색"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "검색 쿼리"
+            },
+            "engine": {
+                "type": "string",
+                "enum": ["Google", "DuckDuckGo", "Bing", "Baidu"]
+            },
+            "max_results": {"type": "integer"}
+        },
+        "required": ["query"]
+    }
+```
+
+**지원 엔진**:
+- Google Search
+- DuckDuckGo
+- Bing
+- Baidu
+
+**Fallback 메커니즘**:
+```toml
+[search]
+engine = "Google"
+fallback_engines = ["DuckDuckGo", "Baidu"]
+retry_delay = 60
+max_retries = 3
+```
+
+### 5. AskHuman
+
+사용자에게 추가 정보를 요청합니다.
+
+```python
+class AskHuman(BaseTool):
+    name = "ask_human"
+    description = "사용자에게 질문"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "question": {"type": "string"}
+        },
+        "required": ["question"]
+    }
+```
+
+### 6. Terminate
+
+작업 완료를 알립니다.
+
+```python
+class Terminate(BaseTool):
+    name = "terminate"
+    description = "작업 완료 신호"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "result": {"type": "string"}
+        },
+        "required": ["result"]
+    }
+```
+
+## 샌드박스 도구
+
+### SandboxShellTool
+
+샌드박스 내에서 쉘 명령을 실행합니다.
+
+```python
+await sandbox_shell.execute(command="ls -la /workspace")
+```
+
+### SandboxFilesTool
+
+샌드박스 파일 시스템에 접근합니다.
+
+```python
+# 파일 읽기
+await sandbox_files.execute(action="read", path="/workspace/data.csv")
+
+# 파일 쓰기
+await sandbox_files.execute(
+    action="write",
+    path="/workspace/output.txt",
+    content="결과 데이터"
+)
+```
+
+### SandboxBrowserTool
+
+샌드박스 내에서 브라우저를 실행합니다.
+
+### SandboxVisionTool
+
+샌드박스 화면을 캡처합니다.
+
+```python
+screenshot = await sandbox_vision.execute(action="screenshot")
+```
+
+## MCP 도구
+
+MCP 프로토콜을 통해 외부 도구를 동적으로 로드합니다.
+
+### 설정
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/workspace"]
+    },
+    "postgres": {
+      "type": "sse",
+      "url": "http://localhost:8000/sse"
+    }
+  }
+}
+```
+
+### MCPClientTool
+
+MCP 서버의 도구를 래핑합니다:
+
+```python
+class MCPClientTool(BaseTool):
+    server_id: str
+    original_tool: Any
+    
+    async def execute(self, **kwargs) -> ToolResult:
+        # MCP 서버 호출
+        result = await self.client.call_tool(
+            self.server_id,
+            self.name,
+            kwargs
+        )
+        return ToolResult(output=result)
+```
+
+## 커스텀 도구 만들기
+
+### 1. 기본 구조
+
+```python
+from app.tool.base import BaseTool, ToolResult
+
+class MyTool(BaseTool):
+    name = "my_tool"
+    description = "내 커스텀 도구"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "input": {
+                "type": "string",
+                "description": "입력 값"
+            }
+        },
+        "required": ["input"]
+    }
+    
+    async def execute(self, input: str, **kwargs) -> ToolResult:
+        try:
+            # 도구 로직
+            result = self.process(input)
+            return self.success_response(result)
+        except Exception as e:
+            return self.fail_response(str(e))
+    
+    def process(self, input: str) -> str:
+        # 실제 처리 로직
+        return f"처리 결과: {input}"
+```
+
+### 2. 외부 API 호출 도구
+
+```python
+import aiohttp
+
+class WeatherTool(BaseTool):
+    name = "get_weather"
+    description = "도시의 날씨 정보 조회"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "city": {"type": "string"}
+        },
+        "required": ["city"]
+    }
+    
+    async def execute(self, city: str, **kwargs) -> ToolResult:
+        async with aiohttp.ClientSession() as session:
+            url = f"https://api.weather.com/v1/{city}"
+            async with session.get(url) as response:
+                data = await response.json()
+                return self.success_response(data)
+```
+
+### 3. 파일 처리 도구
+
+```python
+class CSVProcessor(BaseTool):
+    name = "process_csv"
+    description = "CSV 파일 처리"
+    parameters = {
+        "type": "object",
+        "properties": {
+            "path": {"type": "string"},
+            "operation": {
+                "enum": ["read", "filter", "aggregate"]
+            }
+        },
+        "required": ["path", "operation"]
+    }
+    
+    async def execute(
+        self,
+        path: str,
+        operation: str,
+        **kwargs
+    ) -> ToolResult:
+        import pandas as pd
+        
+        df = pd.read_csv(path)
+        
+        if operation == "read":
+            return self.success_response(df.to_string())
+        elif operation == "filter":
+            # 필터링 로직
+            pass
+        elif operation == "aggregate":
+            # 집계 로직
+            pass
+```
+
+## ToolCollection
+
+여러 도구를 그룹화하여 관리합니다:
+
+```python
+from app.tool import ToolCollection
+
+tools = ToolCollection(
+    PythonExecute(),
+    BrowserUseTool(),
+    WebSearch(),
+    MyTool()
+)
+
+# 도구 추가
+tools.add_tools(AnotherTool())
+
+# 이름으로 도구 찾기
+tool = tools.get_tool("my_tool")
+
+# OpenAI 형식으로 변환
+params = tools.to_params()
+```
+
+## 도구 실행 흐름
+
+```
+1. LLM이 도구 호출 결정
+   ↓
+2. 도구 이름과 파라미터 반환
+   {
+     "name": "python_execute",
+     "arguments": {"code": "print('Hello')"}
+   }
+   ↓
+3. ToolCollection에서 도구 찾기
+   ↓
+4. 파라미터 검증
+   ↓
+5. execute() 메서드 호출
+   ↓
+6. ToolResult 반환
+   ↓
+7. 결과를 메모리에 저장
+   ↓
+8. LLM에게 결과 전달
+```
+
+## 모범 사례
+
+### 1. 명확한 설명
+
+```python
+description = """
+이 도구는 CSV 파일을 읽고 기본 통계를 계산합니다.
+
+입력:
+- path: CSV 파일 경로
+
+출력:
+- 행/열 개수
+- 컬럼명 목록
+- 기본 통계
+"""
+```
+
+### 2. 상세한 파라미터 스키마
+
+```python
+parameters = {
+    "type": "object",
+    "properties": {
+        "path": {
+            "type": "string",
+            "description": "분석할 CSV 파일의 절대 경로"
+        },
+        "delimiter": {
+            "type": "string",
+            "description": "구분자 (기본값: ,)",
+            "default": ","
+        }
+    },
+    "required": ["path"]
+}
+```
+
+### 3. 오류 처리
+
+```python
+async def execute(self, **kwargs) -> ToolResult:
+    try:
+        result = await self.process(**kwargs)
+        return self.success_response(result)
+    except FileNotFoundError:
+        return self.fail_response("파일을 찾을 수 없습니다")
+    except Exception as e:
+        logger.error(f"도구 실행 오류: {e}")
+        return self.fail_response(f"오류 발생: {str(e)}")
+```
+
+### 4. 타임아웃 설정
+
+```python
+import asyncio
+
+async def execute(self, **kwargs) -> ToolResult:
+    try:
+        result = await asyncio.wait_for(
+            self.long_running_task(),
+            timeout=30.0
+        )
+        return self.success_response(result)
+    except asyncio.TimeoutError:
+        return self.fail_response("작업 시간 초과")
+```
+
+## 다음 단계
+
+- [MCP 통합](/features/mcp-integration): MCP 도구 사용법
+- [브라우저 자동화](/features/browser-automation): 브라우저 도구 심화
+- [샌드박스](/concepts/sandbox): 안전한 코드 실행
+- [API 참조](/api/tools): 도구 API 문서

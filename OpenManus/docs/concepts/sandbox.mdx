@@ -1,0 +1,675 @@
+# 샌드박스 (Sandbox)
+
+OpenManus의 샌드박스는 에이전트가 생성한 코드를 안전하게 실행하기 위한 격리된 환경을 제공합니다. Docker 컨테이너 기반의 실행 환경으로, 호스트 시스템을 보호하면서 임의의 Python 코드를 실행할 수 있습니다.
+
+## 개요
+
+샌드박스는 다음과 같은 핵심 기능을 제공합니다:
+
+- **격리된 실행 환경**: Docker 컨테이너를 통한 완전한 격리
+- **안전한 코드 실행**: 호스트 시스템에 영향을 주지 않는 코드 실행
+- **패키지 관리**: pip를 통한 동적 패키지 설치
+- **파일 시스템 접근**: 작업 디렉토리 내 파일 읽기/쓰기
+- **네트워크 접근**: 외부 API 호출 및 웹 리소스 접근
+
+:::info[📖 샌드박스 실행 환경]
+
+**정의**: 샌드박스는 에이전트가 생성한 코드를 호스트 시스템과 격리된 환경에서 실행하기 위한 컨테이너 기반 실행 환경입니다.
+
+**쉬운 비유**: 
+놀이터의 모래 놀이터(sandbox)처럼, 아이들이 안전하게 놀 수 있는 제한된 공간입니다. 아이들이 모래성을 쌓거나 무너뜨려도 놀이터 밖에는 영향을 주지 않는 것처럼, 샌드박스 내에서 실행되는 코드는 호스트 시스템에 영향을 주지 않습니다.
+
+**메커니즘**:
+```
+┌─────────────────────────────────────┐
+│ 호스트 시스템                        │
+│  ┌──────────────────────────────┐   │
+│  │ Docker 컨테이너 (샌드박스)    │   │
+│  │  ┌────────────────────────┐  │   │
+│  │  │ Python 코드 실행       │  │   │
+│  │  │ - 데이터 처리          │  │   │
+│  │  │ - 파일 I/O            │  │   │
+│  │  │ - 패키지 설치          │  │   │
+│  │  └────────────────────────┘  │   │
+│  │                              │   │
+│  │  제한된 리소스:               │   │
+│  │  - CPU, 메모리 제한          │   │
+│  │  - 네트워크 격리             │   │
+│  │  - 파일 시스템 격리          │   │
+│  └──────────────────────────────┘   │
+└─────────────────────────────────────┘
+```
+
+**존재 이유**:
+1. **보안**: 악의적이거나 잘못된 코드로부터 호스트 시스템 보호
+2. **재현성**: 일관된 실행 환경을 통한 결과 재현 보장
+3. **격리**: 여러 작업 간 간섭 방지
+4. **제어**: 리소스 사용량 제한 및 모니터링
+
+:::
+
+## 아키텍처
+
+### 샌드박스 구조
+
+```
+┌─────────────────────────────────────────────┐
+│ OpenManus Agent                             │
+│  │                                          │
+│  ├─ PythonExecute Tool                     │
+│  │   └─ execute(code: str)                 │
+│  │        │                                 │
+│  │        ▼                                 │
+│  │   ┌─────────────────────────────────┐   │
+│  │   │ Sandbox Manager                 │   │
+│  │   │  - Docker client                │   │
+│  │   │  - Container lifecycle          │   │
+│  │   │  - Code execution               │   │
+│  │   └─────────────────────────────────┘   │
+│  │        │                                 │
+└──────────────────────────────────────────────┘
+           │
+           ▼ Docker API
+┌─────────────────────────────────────────────┐
+│ Docker Container                            │
+│  ┌──────────────────────────────────────┐   │
+│  │ Python 실행 환경                      │   │
+│  │  - Python 3.12+                      │   │
+│  │  - pip (패키지 관리자)                │   │
+│  │  - 작업 디렉토리 (/workspace)         │   │
+│  └──────────────────────────────────────┘   │
+│                                             │
+│  리소스 제한:                                │
+│  - CPU: 제한 가능                           │
+│  - Memory: 제한 가능                        │
+│  - Network: 격리/제한 가능                   │
+│  - Disk: 볼륨 마운트                        │
+└─────────────────────────────────────────────┘
+```
+
+### 실행 흐름
+
+```python
+# 1. 에이전트가 Python 코드 생성
+code = """
+import pandas as pd
+df = pd.read_csv('data.csv')
+print(df.describe())
+"""
+
+# 2. PythonExecute 도구가 샌드박스에 코드 전송
+result = await python_tool.execute(code=code)
+
+# 3. 샌드박스 내부 실행 과정:
+#    a. 필요한 패키지 설치 (pandas)
+#    b. 코드 실행
+#    c. stdout/stderr 캡처
+#    d. 결과 반환
+
+# 4. 에이전트가 결과 수신 및 처리
+print(result.output)
+```
+
+## 설정
+
+### 기본 설정
+
+샌드박스는 `config.yaml` 또는 환경 변수를 통해 설정합니다:
+
+```yaml
+# config.yaml
+sandbox:
+  host: "localhost"
+  port: 8080
+  use_daytona: false
+  daytona_target: null
+```
+
+### 환경 변수
+
+```bash
+# 샌드박스 호스트 설정
+export SANDBOX_HOST=localhost
+
+# 샌드박스 포트 설정
+export SANDBOX_PORT=8080
+
+# Daytona 사용 여부
+export USE_DAYTONA=false
+```
+
+### Daytona 통합
+
+[Daytona](https://www.daytona.io/)는 개발 환경 관리 플랫폼으로, OpenManus와 통합하여 더 강력한 샌드박스 환경을 제공할 수 있습니다:
+
+```yaml
+sandbox:
+  use_daytona: true
+  daytona_target: "my-workspace"
+```
+
+:::info[📖 Daytona 통합]
+
+**정의**: Daytona는 클라우드 기반 개발 환경을 관리하는 플랫폼으로, OpenManus 샌드박스를 더 강력하고 확장 가능하게 만들어줍니다.
+
+**쉬운 비유**:
+기본 샌드박스가 집 안의 작은 작업 공간이라면, Daytona 통합은 전문 연구실을 빌려 쓰는 것과 같습니다. 더 많은 도구, 더 큰 공간, 더 나은 인프라를 사용할 수 있습니다.
+
+**메커니즘**:
+```
+OpenManus Agent
+    │
+    ├─ use_daytona: false
+    │   └─ 로컬 Docker 컨테이너 사용
+    │
+    └─ use_daytona: true
+        └─ Daytona API 호출
+            └─ 클라우드 워크스페이스
+                - 더 강력한 컴퓨팅 리소스
+                - 영구적인 파일 시스템
+                - 사전 구성된 환경
+```
+
+**존재 이유**:
+1. **확장성**: 로컬 리소스 제약 없이 대규모 작업 처리
+2. **영구성**: 세션 간 파일 및 환경 유지
+3. **협업**: 팀원 간 샌드박스 환경 공유
+4. **관리**: 중앙 집중식 환경 관리 및 모니터링
+
+:::
+
+## 코드 실행
+
+### PythonExecute 도구
+
+샌드박스에서 Python 코드를 실행하는 주요 도구입니다:
+
+```python
+from app.tool.code import PythonExecute
+
+# 도구 생성
+python_tool = PythonExecute(sandbox_manager=sandbox_manager)
+
+# 간단한 계산
+result = await python_tool.execute(
+    code="""
+x = 10
+y = 20
+print(f"Sum: {x + y}")
+"""
+)
+print(result.output)  # "Sum: 30"
+
+# 데이터 분석
+result = await python_tool.execute(
+    code="""
+import pandas as pd
+import numpy as np
+
+# 데이터 생성
+data = {'A': np.random.randn(100), 'B': np.random.randn(100)}
+df = pd.DataFrame(data)
+
+# 통계 분석
+print(df.describe())
+print(f"\\nCorrelation: {df['A'].corr(df['B']):.4f}")
+"""
+)
+```
+
+### 파일 작업
+
+샌드박스 내에서 파일을 읽고 쓸 수 있습니다:
+
+```python
+# 파일 쓰기
+await python_tool.execute(
+    code="""
+with open('/workspace/output.txt', 'w') as f:
+    f.write('Hello from sandbox!')
+"""
+)
+
+# 파일 읽기
+result = await python_tool.execute(
+    code="""
+with open('/workspace/output.txt', 'r') as f:
+    content = f.read()
+print(content)
+"""
+)
+
+# CSV 파일 처리
+await python_tool.execute(
+    code="""
+import pandas as pd
+
+# 데이터 생성 및 저장
+df = pd.DataFrame({
+    'name': ['Alice', 'Bob', 'Charlie'],
+    'age': [25, 30, 35],
+    'score': [85, 92, 88]
+})
+df.to_csv('/workspace/data.csv', index=False)
+
+# 파일 읽기 및 분석
+df_loaded = pd.read_csv('/workspace/data.csv')
+print(df_loaded.describe())
+"""
+)
+```
+
+### 패키지 설치
+
+샌드박스는 필요한 패키지를 자동으로 감지하고 설치합니다:
+
+```python
+# 외부 라이브러리 사용
+result = await python_tool.execute(
+    code="""
+import requests
+from bs4 import BeautifulSoup
+
+# 웹 스크래핑 예제
+response = requests.get('https://example.com')
+soup = BeautifulSoup(response.text, 'html.parser')
+print(soup.title.string)
+"""
+)
+
+# 데이터 시각화 라이브러리
+await python_tool.execute(
+    code="""
+import matplotlib.pyplot as plt
+import numpy as np
+
+x = np.linspace(0, 2*np.pi, 100)
+y = np.sin(x)
+
+plt.figure(figsize=(10, 6))
+plt.plot(x, y)
+plt.title('Sine Wave')
+plt.savefig('/workspace/plot.png')
+print('Plot saved to /workspace/plot.png')
+"""
+)
+```
+
+## 보안 고려사항
+
+### 격리 수준
+
+샌드박스는 여러 수준의 격리를 제공합니다:
+
+1. **프로세스 격리**: Docker 컨테이너를 통한 프로세스 분리
+2. **파일 시스템 격리**: 제한된 파일 시스템 접근
+3. **네트워크 격리**: 필요시 네트워크 접근 제한 가능
+4. **리소스 격리**: CPU, 메모리 사용량 제한
+
+### 제한 사항
+
+샌드박스 내에서 다음과 같은 제한이 있습니다:
+
+```python
+# ❌ 허용되지 않는 작업들
+
+# 1. 호스트 파일 시스템 직접 접근
+with open('/etc/passwd', 'r') as f:  # 실패
+    content = f.read()
+
+# 2. 시스템 명령어 실행 (제한적)
+import os
+os.system('rm -rf /')  # 컨테이너 내에서만 영향
+
+# 3. 과도한 리소스 사용
+# (설정에 따라 제한됨)
+big_list = [0] * (10**10)  # 메모리 제한 초과시 실패
+```
+
+### 안전한 사용 패턴
+
+```python
+# ✅ 권장되는 사용 패턴
+
+# 1. 작업 디렉토리 사용
+code = """
+import os
+os.chdir('/workspace')  # 안전한 작업 디렉토리
+
+# 파일 작업
+with open('data.txt', 'w') as f:
+    f.write('Safe file operation')
+"""
+
+# 2. 예외 처리
+code = """
+try:
+    # 위험할 수 있는 작업
+    result = risky_operation()
+except Exception as e:
+    print(f"Error occurred: {e}")
+    result = None
+"""
+
+# 3. 리소스 제한 확인
+code = """
+import psutil
+
+# 메모리 사용량 확인
+memory = psutil.virtual_memory()
+print(f"Available memory: {memory.available / 1024**3:.2f} GB")
+
+# 큰 데이터 처리 전 확인
+if memory.available > required_memory:
+    process_large_data()
+else:
+    print("Insufficient memory")
+"""
+```
+
+## 모범 사례
+
+### 1. 효율적인 코드 실행
+
+```python
+# ❌ 비효율적: 여러 번 실행
+result1 = await python_tool.execute(code="x = 10")
+result2 = await python_tool.execute(code="y = 20")
+result3 = await python_tool.execute(code="print(x + y)")  # 실패: x, y 정의 안됨
+
+# ✅ 효율적: 한 번에 실행
+result = await python_tool.execute(
+    code="""
+x = 10
+y = 20
+print(x + y)
+"""
+)
+```
+
+### 2. 상태 관리
+
+```python
+# 샌드박스는 실행 간 상태를 유지하지 않음
+# 필요한 경우 파일로 상태 저장
+
+# 첫 번째 실행
+await python_tool.execute(
+    code="""
+import pickle
+
+state = {'counter': 0, 'data': [1, 2, 3]}
+with open('/workspace/state.pkl', 'wb') as f:
+    pickle.dump(state, f)
+"""
+)
+
+# 두 번째 실행 - 상태 복원
+result = await python_tool.execute(
+    code="""
+import pickle
+
+with open('/workspace/state.pkl', 'rb') as f:
+    state = pickle.load(f)
+
+state['counter'] += 1
+print(f"Counter: {state['counter']}")
+
+# 상태 저장
+with open('/workspace/state.pkl', 'wb') as f:
+    pickle.dump(state, f)
+"""
+)
+```
+
+### 3. 오류 처리
+
+```python
+# 에이전트에서 샌드박스 오류 처리
+async def safe_execute(code: str) -> ToolResult:
+    try:
+        result = await python_tool.execute(code=code)
+        
+        if result.is_error:
+            # 오류 분석 및 재시도
+            if "ModuleNotFoundError" in result.output:
+                # 패키지 설치 문제
+                return ToolResult(
+                    output="Package installation failed. Retrying...",
+                    is_error=True
+                )
+            elif "MemoryError" in result.output:
+                # 메모리 부족
+                return ToolResult(
+                    output="Insufficient memory. Try reducing data size.",
+                    is_error=True
+                )
+        
+        return result
+        
+    except Exception as e:
+        return ToolResult(
+            output=f"Sandbox execution failed: {e}",
+            is_error=True
+        )
+```
+
+### 4. 성능 최적화
+
+```python
+# 대용량 데이터 처리시 청크 단위 처리
+code = """
+import pandas as pd
+
+# 청크 단위로 CSV 읽기
+chunk_size = 10000
+chunks = []
+
+for chunk in pd.read_csv('large_file.csv', chunksize=chunk_size):
+    # 각 청크 처리
+    processed = chunk[chunk['value'] > 0]
+    chunks.append(processed)
+
+# 결과 합치기
+result = pd.concat(chunks)
+print(f"Processed {len(result)} rows")
+"""
+
+# 메모리 효율적인 연산
+code = """
+import numpy as np
+
+# Generator 사용
+def process_data():
+    for i in range(1000000):
+        yield i ** 2
+
+result = sum(process_data())
+print(f"Sum: {result}")
+"""
+```
+
+## 문제 해결
+
+### 일반적인 문제
+
+#### 1. 샌드박스 연결 실패
+
+```bash
+# 문제: Docker 데몬이 실행 중이 아님
+Error: Cannot connect to the Docker daemon
+
+# 해결:
+# 1. Docker 데몬 시작
+sudo systemctl start docker
+
+# 2. 사용자를 docker 그룹에 추가
+sudo usermod -aG docker $USER
+
+# 3. 재로그인 또는 그룹 변경 적용
+newgrp docker
+```
+
+#### 2. 포트 충돌
+
+```yaml
+# 문제: 포트가 이미 사용 중
+Error: Port 8080 is already in use
+
+# 해결: 다른 포트 사용
+sandbox:
+  host: "localhost"
+  port: 8081  # 다른 포트로 변경
+```
+
+#### 3. 패키지 설치 실패
+
+```python
+# 문제: 패키지 설치 시간 초과
+Error: Package installation timeout
+
+# 해결: 필수 패키지를 컨테이너 이미지에 미리 포함
+# Dockerfile에 추가:
+# RUN pip install pandas numpy matplotlib seaborn scikit-learn
+```
+
+#### 4. 메모리 부족
+
+```yaml
+# 문제: 대용량 데이터 처리시 메모리 부족
+MemoryError: Unable to allocate array
+
+# 해결: Docker 컨테이너 메모리 제한 증가
+# docker-compose.yml
+services:
+  sandbox:
+    mem_limit: 4g  # 4GB로 증가
+```
+
+### 디버깅 팁
+
+```python
+# 1. 상세한 오류 정보 출력
+code = """
+import traceback
+import sys
+
+try:
+    # 문제가 있는 코드
+    risky_operation()
+except Exception as e:
+    # 전체 traceback 출력
+    print("Error occurred:", file=sys.stderr)
+    traceback.print_exc()
+"""
+
+# 2. 샌드박스 환경 정보 확인
+code = """
+import sys
+import os
+import platform
+
+print(f"Python version: {sys.version}")
+print(f"Platform: {platform.platform()}")
+print(f"Working directory: {os.getcwd()}")
+print(f"Environment variables: {dict(os.environ)}")
+"""
+
+# 3. 리소스 사용량 모니터링
+code = """
+import psutil
+import time
+
+print(f"CPU count: {psutil.cpu_count()}")
+print(f"Memory: {psutil.virtual_memory().total / 1024**3:.2f} GB")
+print(f"Disk: {psutil.disk_usage('/').total / 1024**3:.2f} GB")
+
+# CPU 사용률 측정
+cpu_percent = psutil.cpu_percent(interval=1)
+print(f"CPU usage: {cpu_percent}%")
+"""
+```
+
+## 고급 사용법
+
+### 커스텀 샌드박스 이미지
+
+프로젝트별 요구사항에 맞는 커스텀 Docker 이미지를 만들 수 있습니다:
+
+```dockerfile
+# Dockerfile
+FROM python:3.12-slim
+
+# 시스템 패키지 설치
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    git \
+    && rm -rf /var/lib/apt/lists/*
+
+# Python 패키지 설치
+RUN pip install --no-cache-dir \
+    pandas \
+    numpy \
+    matplotlib \
+    seaborn \
+    scikit-learn \
+    requests \
+    beautifulsoup4
+
+# 작업 디렉토리
+WORKDIR /workspace
+
+# 기본 명령어
+CMD ["python"]
+```
+
+### 샌드박스 모니터링
+
+```python
+from app.sandbox import SandboxManager
+import asyncio
+
+async def monitor_sandbox():
+    """샌드박스 상태 모니터링"""
+    manager = SandboxManager()
+    
+    while True:
+        stats = await manager.get_stats()
+        print(f"""
+Sandbox Statistics:
+- Active containers: {stats['active_containers']}
+- CPU usage: {stats['cpu_percent']}%
+- Memory usage: {stats['memory_mb']} MB
+- Disk usage: {stats['disk_gb']} GB
+        """)
+        
+        await asyncio.sleep(10)  # 10초마다 확인
+```
+
+### 샌드박스 정리
+
+```python
+async def cleanup_sandbox():
+    """미사용 샌드박스 리소스 정리"""
+    manager = SandboxManager()
+    
+    # 중지된 컨테이너 제거
+    await manager.prune_containers()
+    
+    # 미사용 이미지 제거
+    await manager.prune_images()
+    
+    # 미사용 볼륨 제거
+    await manager.prune_volumes()
+    
+    print("Sandbox cleanup completed")
+```
+
+## 다음 단계
+
+샌드박스 실행 환경에 대해 이해했다면:
+
+- [도구 (Tools)](./tools.mdx) - PythonExecute를 포함한 다양한 도구 활용법
+- [에이전트 (Agents)](./agents.mdx) - 에이전트가 샌드박스를 활용하는 방법
+- [워크플로우 (Flows)](./flows.mdx) - 복잡한 작업에서 샌드박스 활용하기

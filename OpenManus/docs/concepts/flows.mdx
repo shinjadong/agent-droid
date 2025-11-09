@@ -1,0 +1,413 @@
+---
+title: 워크플로우
+description: 멀티 에이전트 조율과 복잡한 작업 흐름 관리
+---
+
+# 워크플로우
+
+**워크플로우(Flow)** 는 여러 에이전트를 조율하여 복잡한 작업을 체계적으로 처리하는 시스템입니다.
+
+📖 **워크플로우**
+├─ **정의**: 여러 에이전트가 협력하여 복잡한 작업을 단계별로 처리하는 오케스트레이션 시스템
+├─ **쉬운 비유**: 프로젝트 관리자가 여러 팀에 작업을 나누어 배분하고 조율하는 것
+├─ **메커니즘**: Planning Agent가 작업 분해 → 각 에이전트에 할당 → 결과 통합
+└─ **존재 이유**: 단일 에이전트로 처리하기 어려운 대규모 작업을 효율적으로 수행
+
+## Flow 아키텍처
+
+```
+사용자 요청
+    ↓
+┌─────────────┐
+│ BaseFlow    │
+└──────┬──────┘
+       │
+       ├── PlanningFlow    (작업 분해 및 조율)
+       ├── SequentialFlow  (순차 실행)
+       └── ParallelFlow    (병렬 실행)
+```
+
+## BaseFlow
+
+모든 워크플로우의 기본 클래스입니다:
+
+```python
+class BaseFlow(BaseModel, ABC):
+    agents: Dict[str, BaseAgent]
+    
+    @abstractmethod
+    async def execute(self, request: str) -> str:
+        """워크플로우 실행"""
+        pass
+```
+
+## PlanningFlow
+
+Planning Agent가 작업을 분해하고 적절한 에이전트에 할당합니다.
+
+### 작동 원리
+
+```
+1. 사용자 요청 수신
+    ↓
+2. Planning Agent가 작업 분석 및 분해
+    ↓
+3. 각 서브태스크를 적절한 에이전트에 할당
+    ├─ 데이터 분석 → DataAnalysis Agent
+    ├─ 웹 작업 → Manus Agent (Browser)
+    └─ 일반 작업 → Manus Agent
+    ↓
+4. 각 에이전트 순차 실행
+    ↓
+5. 결과 통합 및 반환
+```
+
+### 구현 예시
+
+```python
+class PlanningFlow(BaseFlow):
+    planner: PlanningAgent
+    
+    async def execute(self, request: str) -> str:
+        # 1. 작업 계획 수립
+        plan = await self.planner.create_plan(request)
+        
+        # 2. 각 단계 실행
+        results = []
+        for task in plan.tasks:
+            agent = self.agents[task.agent_name]
+            result = await agent.run(task.description)
+            results.append(result)
+        
+        # 3. 결과 통합
+        return await self.planner.synthesize(results)
+```
+
+### 사용 예시
+
+```python
+flow = FlowFactory.create_flow(
+    flow_type=FlowType.PLANNING,
+    agents={
+        "manus": Manus(),
+        "data_analysis": DataAnalysis()
+    }
+)
+
+result = await flow.execute(
+    "sales.csv를 분석하고 상위 10개 제품을 웹에서 검색해줘"
+)
+```
+
+## Planning Agent
+
+작업을 분해하고 조율하는 특수 에이전트입니다.
+
+### 핵심 도구
+
+```python
+class CreatePlan(BaseTool):
+    name = "create_plan"
+    description = "작업을 서브태스크로 분해"
+    
+    async def execute(
+        self,
+        tasks: List[Dict],
+        **kwargs
+    ) -> ToolResult:
+        """
+        tasks: [
+            {
+                "description": "sales.csv 파일 분석",
+                "agent": "data_analysis",
+                "dependencies": []
+            },
+            {
+                "description": "상위 제품 웹 검색",
+                "agent": "manus",
+                "dependencies": [0]
+            }
+        ]
+        """
+```
+
+### 작업 계획 예시
+
+```json
+{
+  "plan": {
+    "tasks": [
+      {
+        "id": 0,
+        "description": "sales.csv 파일을 읽고 매출 분석",
+        "agent": "data_analysis",
+        "dependencies": []
+      },
+      {
+        "id": 1,
+        "description": "상위 10개 제품 추출",
+        "agent": "data_analysis",
+        "dependencies": [0]
+      },
+      {
+        "id": 2,
+        "description": "각 제품을 Google에서 검색",
+        "agent": "manus",
+        "dependencies": [1]
+      }
+    ]
+  }
+}
+```
+
+## FlowFactory
+
+워크플로우를 생성하는 팩토리 클래스입니다:
+
+```python
+class FlowType(Enum):
+    PLANNING = "planning"
+    SEQUENTIAL = "sequential"
+    PARALLEL = "parallel"
+
+class FlowFactory:
+    @staticmethod
+    def create_flow(
+        flow_type: FlowType,
+        agents: Dict[str, BaseAgent]
+    ) -> BaseFlow:
+        if flow_type == FlowType.PLANNING:
+            return PlanningFlow(agents=agents)
+        elif flow_type == FlowType.SEQUENTIAL:
+            return SequentialFlow(agents=agents)
+        elif flow_type == FlowType.PARALLEL:
+            return ParallelFlow(agents=agents)
+```
+
+## 에이전트 조합 패턴
+
+### 1. Manus + DataAnalysis
+
+데이터 수집 및 분석:
+
+```python
+agents = {
+    "manus": Manus(),           # 웹에서 데이터 수집
+    "analysis": DataAnalysis()  # 데이터 분석 및 시각화
+}
+
+flow = FlowFactory.create_flow(FlowType.PLANNING, agents)
+result = await flow.execute(
+    "경쟁사 웹사이트에서 가격 정보를 수집하고 비교 차트를 만들어줘"
+)
+```
+
+### 2. Browser + Manus
+
+웹 자동화 및 처리:
+
+```python
+agents = {
+    "browser": BrowserAgent(),  # 브라우저 제어
+    "manus": Manus()            # 결과 처리
+}
+
+flow = FlowFactory.create_flow(FlowType.PLANNING, agents)
+result = await flow.execute(
+    "GitHub에서 trending 저장소를 스크랩하고 README를 요약해줘"
+)
+```
+
+### 3. Multiple Manus Agents
+
+병렬 처리:
+
+```python
+agents = {
+    "manus1": Manus(),
+    "manus2": Manus(),
+    "manus3": Manus()
+}
+
+# 병렬 실행
+flow = FlowFactory.create_flow(FlowType.PARALLEL, agents)
+result = await flow.execute([
+    "task1을 처리해줘",
+    "task2를 처리해줘",
+    "task3을 처리해줘"
+])
+```
+
+## 실행 모드
+
+### run_flow.py
+
+멀티 에이전트 워크플로우 실행:
+
+```bash
+python run_flow.py
+```
+
+설정:
+
+```toml
+[runflow]
+use_data_analysis_agent = true  # DataAnalysis 에이전트 활성화
+```
+
+### 작업 흐름
+
+```python
+async def run_flow():
+    agents = {
+        "manus": Manus(),
+    }
+    if config.run_flow_config.use_data_analysis_agent:
+        agents["data_analysis"] = DataAnalysis()
+    
+    flow = FlowFactory.create_flow(
+        flow_type=FlowType.PLANNING,
+        agents=agents,
+    )
+    
+    result = await flow.execute(user_prompt)
+```
+
+## 고급 패턴
+
+### 의존성 관리
+
+작업 간 의존성을 정의:
+
+```python
+tasks = [
+    {
+        "id": 0,
+        "description": "데이터 수집",
+        "dependencies": []
+    },
+    {
+        "id": 1,
+        "description": "데이터 정제",
+        "dependencies": [0]  # 0번 작업 완료 후 실행
+    },
+    {
+        "id": 2,
+        "description": "분석",
+        "dependencies": [1]  # 1번 작업 완료 후 실행
+    },
+    {
+        "id": 3,
+        "description": "시각화",
+        "dependencies": [2]  # 2번 작업 완료 후 실행
+    }
+]
+```
+
+### 조건부 실행
+
+```python
+class ConditionalFlow(BaseFlow):
+    async def execute(self, request: str) -> str:
+        # 1. 조건 평가
+        if await self.should_use_data_analysis(request):
+            agent = self.agents["data_analysis"]
+        else:
+            agent = self.agents["manus"]
+        
+        # 2. 선택된 에이전트 실행
+        return await agent.run(request)
+```
+
+### 오류 복구
+
+```python
+async def execute_with_retry(
+    self,
+    task: Task,
+    max_retries: int = 3
+) -> str:
+    for attempt in range(max_retries):
+        try:
+            agent = self.agents[task.agent_name]
+            result = await agent.run(task.description)
+            return result
+        except Exception as e:
+            if attempt == max_retries - 1:
+                raise
+            logger.warning(f"재시도 {attempt + 1}/{max_retries}")
+            await asyncio.sleep(2 ** attempt)
+```
+
+## 성능 최적화
+
+### 병렬 실행
+
+독립적인 작업을 동시에 실행:
+
+```python
+async def execute_parallel(self, tasks: List[Task]) -> List[str]:
+    coroutines = [
+        self.agents[task.agent_name].run(task.description)
+        for task in tasks
+        if not task.dependencies
+    ]
+    
+    results = await asyncio.gather(*coroutines)
+    return results
+```
+
+### 타임아웃 설정
+
+```python
+result = await asyncio.wait_for(
+    flow.execute(prompt),
+    timeout=3600  # 1시간 타임아웃
+)
+```
+
+## 모범 사례
+
+### 1. 명확한 작업 분해
+
+```python
+# Good
+tasks = [
+    "1. CSV 파일 읽기",
+    "2. 데이터 정제 (결측치 제거)",
+    "3. 기술 통계 계산",
+    "4. 시각화"
+]
+
+# Bad (모호함)
+tasks = [
+    "데이터 처리"
+]
+```
+
+### 2. 적절한 에이전트 선택
+
+```python
+# 데이터 분석은 DataAnalysis에게
+if "분석" in task or "차트" in task:
+    agent = agents["data_analysis"]
+# 웹 작업은 Manus에게
+elif "검색" in task or "웹" in task:
+    agent = agents["manus"]
+```
+
+### 3. 결과 검증
+
+```python
+result = await agent.run(task)
+if not self.is_valid_result(result):
+    # 재시도 또는 다른 전략
+    result = await self.fallback_strategy(task)
+```
+
+## 다음 단계
+
+- [에이전트 시스템](/concepts/agents): 개별 에이전트 이해
+- [Planning Agent](/guides/planning-agent): Planning Agent 상세 가이드
+- [DataAnalysis Agent](/guides/data-analysis): 데이터 분석 에이전트
+- [API 참조](/api/flows): Flow API 문서

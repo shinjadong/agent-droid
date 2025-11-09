@@ -1,0 +1,483 @@
+# 브라우저 자동화 (Browser Automation)
+
+OpenManus는 [Playwright](https://playwright.dev/)를 기반으로 강력한 브라우저 자동화 기능을 제공합니다. 웹 페이지 탐색, 데이터 수집, 폼 작성, 스크린샷 캡처 등 다양한 웹 자동화 작업을 수행할 수 있습니다.
+
+## 개요
+
+브라우저 자동화 기능의 주요 특징:
+
+- **다중 브라우저 지원**: Chromium, Firefox, WebKit
+- **헤드리스 모드**: UI 없이 백그라운드 실행
+- **자동 대기**: 요소가 준비될 때까지 자동 대기
+- **스크린샷 및 PDF**: 페이지 캡처 및 문서 생성
+- **네트워크 제어**: 요청 가로채기 및 수정
+- **파일 업로드/다운로드**: 파일 처리 자동화
+
+:::info[📖 브라우저 자동화]
+
+**정의**: 브라우저 자동화는 웹 브라우저의 동작을 프로그래밍 방식으로 제어하여, 사람이 수동으로 하는 웹 작업을 자동으로 수행하는 기술입니다.
+
+**쉬운 비유**:
+로봇이 컴퓨터 앞에 앉아서 마우스와 키보드를 조작하는 것과 같습니다. 웹사이트 방문, 버튼 클릭, 폼 작성, 데이터 수집 등 사람이 하는 모든 작업을 로봇이 정확하고 빠르게 수행합니다.
+
+**메커니즘**:
+```
+OpenManus Agent
+    │
+    ▼
+BrowserUseTool
+    │
+    ▼ Playwright API
+┌─────────────────────────────────┐
+│ Browser (Chromium/Firefox/...)  │
+│  ┌──────────────────────────┐   │
+│  │ Web Page                 │   │
+│  │  - DOM 조작              │   │
+│  │  - 이벤트 발생           │   │
+│  │  - 데이터 추출           │   │
+│  └──────────────────────────┘   │
+└─────────────────────────────────┘
+```
+
+**존재 이유**:
+1. **효율성**: 반복 작업을 자동화하여 시간 절약
+2. **정확성**: 사람의 실수 없이 일관된 작업 수행
+3. **확장성**: 수백, 수천 개의 작업을 동시에 처리
+4. **데이터 수집**: 웹사이트에서 대량의 데이터 추출
+
+:::
+
+## 설정
+
+### 브라우저 설정
+
+`config.yaml`에서 브라우저 옵션을 설정합니다:
+
+```yaml
+browser:
+  browser_type: "chromium"  # "chromium", "firefox", "webkit"
+  headless: true            # 헤드리스 모드 사용
+  use_cdp: true             # Chrome DevTools Protocol 사용
+  cdp_endpoint: null        # 외부 CDP 엔드포인트 (선택사항)
+```
+
+### 환경 변수
+
+```bash
+# 브라우저 타입 설정
+export BROWSER_TYPE=chromium
+
+# 헤드리스 모드 비활성화 (디버깅용)
+export BROWSER_HEADLESS=false
+
+# CDP 엔드포인트 (외부 브라우저 사용시)
+export CDP_ENDPOINT=ws://localhost:9222
+```
+
+## 기본 사용법
+
+### 웹 페이지 방문 및 데이터 추출
+
+```python
+from app.agent.manus import Manus
+
+agent = await Manus.create()
+
+# 웹 페이지에서 정보 추출
+result = await agent.run("""
+https://example.com 웹사이트를 방문해서
+제목과 주요 내용을 추출해줘.
+""")
+
+# 여러 페이지 데이터 수집
+result = await agent.run("""
+다음 URL들을 방문해서 각 페이지의 제목을 수집해줘:
+1. https://news.ycombinator.com
+2. https://github.com/trending
+3. https://stackoverflow.com
+""")
+```
+
+### 폼 작성 및 제출
+
+```python
+# 로그인 폼 작성
+await agent.run("""
+https://example.com/login 페이지로 가서
+아이디: testuser
+비밀번호: testpass123
+로 로그인해줘.
+""")
+
+# 검색 폼 사용
+await agent.run("""
+Google에서 'OpenAI GPT-4'를 검색하고
+상위 5개 결과의 제목과 URL을 알려줘.
+""")
+```
+
+### 스크린샷 캡처
+
+```python
+# 전체 페이지 스크린샷
+await agent.run("""
+https://example.com을 방문해서
+전체 페이지 스크린샷을 screenshot.png로 저장해줘.
+""")
+
+# 특정 요소만 캡처
+await agent.run("""
+https://example.com의 header 부분만
+캡처해서 header.png로 저장해줘.
+""")
+```
+
+## 고급 기능
+
+### 네비게이션 및 대기
+
+```python
+await agent.run("""
+https://example.com을 방문해서:
+1. 'Products' 링크를 클릭
+2. 페이지가 완전히 로드될 때까지 대기
+3. 제품 목록을 추출
+""")
+
+# 특정 요소가 나타날 때까지 대기
+await agent.run("""
+https://example.com을 방문해서
+'동적 콘텐츠가 로드되었습니다' 텍스트가 나타날 때까지 기다린 후,
+해당 콘텐츠를 추출해줘.
+""")
+```
+
+### 파일 다운로드
+
+```python
+await agent.run("""
+https://example.com/downloads 페이지에서
+'report.pdf' 파일을 다운로드해서
+/workspace/downloads/ 폴더에 저장해줘.
+""")
+```
+
+### 파일 업로드
+
+```python
+await agent.run("""
+https://example.com/upload 페이지에서
+/workspace/data.csv 파일을 업로드하고
+'Submit' 버튼을 클릭해줘.
+""")
+```
+
+### JavaScript 실행
+
+```python
+await agent.run("""
+https://example.com을 방문해서
+JavaScript로 다음 작업을 수행해줘:
+1. 모든 링크의 href 속성 수집
+2. 페이지 스크롤을 맨 아래로 이동
+3. 숨겨진 요소 표시
+""")
+```
+
+### 쿠키 및 로컬 스토리지
+
+```python
+# 로그인 상태 유지
+await agent.run("""
+https://example.com에 로그인한 후,
+쿠키를 cookies.json 파일로 저장해줘.
+""")
+
+# 저장된 쿠키 로드
+await agent.run("""
+cookies.json 파일의 쿠키를 로드해서
+https://example.com에 접속하고
+로그인된 상태에서 대시보드 정보를 가져와줘.
+""")
+```
+
+## 웹 스크래핑
+
+### 정적 페이지 스크래핑
+
+```python
+await agent.run("""
+https://news.ycombinator.com을 방문해서
+상위 10개 뉴스의 제목, 점수, 링크를 추출하고
+CSV 파일로 저장해줘.
+""")
+```
+
+### 동적 페이지 스크래핑
+
+```python
+await agent.run("""
+https://twitter.com/some_user를 방문해서:
+1. 페이지를 아래로 스크롤하면서 트윗 로드
+2. 최신 트윗 20개의 텍스트와 좋아요 수 추출
+3. JSON 파일로 저장
+""")
+```
+
+### 페이지네이션 처리
+
+```python
+await agent.run("""
+https://example.com/products 페이지에서:
+1. 첫 페이지의 제품 정보 수집
+2. '다음 페이지' 버튼 클릭
+3. 총 5페이지의 모든 제품 정보 수집
+4. 하나의 CSV 파일로 저장
+""")
+```
+
+### 무한 스크롤 처리
+
+```python
+await agent.run("""
+https://example.com/feed를 방문해서:
+1. 페이지를 아래로 스크롤
+2. 새 콘텐츠가 로드될 때까지 대기
+3. 3번 반복
+4. 모든 게시물의 제목과 내용 추출
+""")
+```
+
+## 테스팅 및 검증
+
+### 웹사이트 기능 테스트
+
+```python
+await agent.run("""
+https://example.com에서 다음 테스트를 수행해줘:
+1. 로그인 폼이 정상 작동하는지 확인
+2. 검색 기능이 결과를 반환하는지 확인
+3. 장바구니에 상품 추가가 되는지 확인
+4. 각 단계의 스크린샷을 저장
+""")
+```
+
+### 반응형 디자인 테스트
+
+```python
+await agent.run("""
+https://example.com을 다음 해상도에서 테스트해줘:
+1. 모바일 (375x667)
+2. 태블릿 (768x1024)
+3. 데스크톱 (1920x1080)
+각 해상도에서 스크린샷을 저장해줘.
+""")
+```
+
+### 링크 검증
+
+```python
+await agent.run("""
+https://example.com의 모든 링크를 확인해서:
+1. 깨진 링크 찾기 (404 오류)
+2. 외부 링크 목록
+3. 이메일 링크 목록
+결과를 보고서로 작성해줘.
+""")
+```
+
+## 성능 최적화
+
+### 리소스 차단
+
+```python
+# 이미지, 폰트 등 불필요한 리소스 차단으로 속도 향상
+await agent.run("""
+브라우저에서 이미지와 CSS를 로드하지 않도록 설정하고
+https://news.ycombinator.com의 뉴스 제목만 빠르게 추출해줘.
+""")
+```
+
+### 병렬 처리
+
+```python
+await agent.run("""
+다음 URL들을 동시에 방문해서 각 페이지의 제목을 수집해줘:
+- https://example1.com
+- https://example2.com
+- https://example3.com
+- https://example4.com
+- https://example5.com
+""")
+```
+
+### 캐시 활용
+
+```python
+await agent.run("""
+https://example.com을 방문해서:
+1. 첫 방문시 캐시 저장
+2. 두 번째 방문시 캐시 사용
+3. 로딩 시간 차이 비교
+""")
+```
+
+## 모범 사례
+
+### 1. 명시적 대기 사용
+
+```python
+# ❌ 하드코딩된 대기 시간
+await agent.run("""
+페이지 방문 후 5초 대기
+""")
+
+# ✅ 요소 기반 대기
+await agent.run("""
+'로딩 완료' 메시지가 나타날 때까지 대기
+""")
+```
+
+### 2. 오류 처리
+
+```python
+await agent.run("""
+다음 작업을 수행하되, 오류 발생시 스크린샷을 저장해줘:
+1. https://example.com 방문
+2. 로그인 시도
+3. 대시보드 접근
+오류가 있으면 error.png로 스크린샷 저장
+""")
+```
+
+### 3. 선택자 전략
+
+```python
+# ❌ 취약한 선택자
+await agent.run("""
+CSS 선택자 'div > div > p:nth-child(3)'로 요소 찾기
+""")
+
+# ✅ 견고한 선택자
+await agent.run("""
+data-testid='product-title' 속성을 가진 요소 찾기
+""")
+```
+
+### 4. 리소스 정리
+
+```python
+# 브라우저 세션 정리
+await agent.run("""
+작업 완료 후:
+1. 임시 파일 삭제
+2. 쿠키 초기화
+3. 캐시 클리어
+""")
+```
+
+## 문제 해결
+
+### 일반적인 문제
+
+#### 1. 브라우저 실행 실패
+
+```bash
+# 문제: Playwright 브라우저가 설치되지 않음
+Error: Executable doesn't exist at /path/to/chromium
+
+# 해결:
+playwright install chromium
+
+# 모든 브라우저 설치
+playwright install
+```
+
+#### 2. 요소를 찾을 수 없음
+
+```python
+# 문제: 요소 선택자가 잘못됨
+Error: Element not found: #non-existent-id
+
+# 해결: 여러 선택자 시도
+await agent.run("""
+다음 선택자들을 순서대로 시도해서 요소 찾기:
+1. id='submit-button'
+2. class='submit'
+3. text='제출'
+""")
+```
+
+#### 3. 타임아웃 오류
+
+```python
+# 문제: 페이지 로딩이 너무 느림
+Error: Timeout waiting for selector
+
+# 해결: 대기 시간 증가
+await agent.run("""
+페이지 로딩에 최대 30초까지 대기하도록 설정하고
+작업을 수행해줘.
+""")
+```
+
+#### 4. 캡챠 또는 봇 감지
+
+```python
+# 일부 웹사이트는 자동화를 감지하고 차단할 수 있음
+# 해결 방법:
+# 1. User-Agent 설정
+# 2. 헤더 커스터마이징
+# 3. 적절한 대기 시간 추가
+# 4. 사람처럼 동작하도록 패턴 변경
+
+await agent.run("""
+사람처럼 동작하도록:
+1. 랜덤한 시간 대기
+2. 마우스 움직임 시뮬레이션
+3. 스크롤을 부드럽게 수행
+""")
+```
+
+## 보안 고려사항
+
+### 1. 자격증명 관리
+
+```python
+# ❌ 코드에 하드코딩
+await agent.run("username='admin', password='secret123'로 로그인")
+
+# ✅ 환경 변수 사용
+import os
+username = os.getenv('WEB_USERNAME')
+password = os.getenv('WEB_PASSWORD')
+
+await agent.run(f"username='{username}', password='{password}'로 로그인")
+```
+
+### 2. HTTPS 사용
+
+```python
+# ✅ 안전한 연결만 사용
+await agent.run("""
+https://secure-site.com 방문
+(http:// 사이트는 피할 것)
+""")
+```
+
+### 3. 샌드박스 실행
+
+```python
+# 신뢰할 수 없는 웹사이트 방문시 샌드박스 사용
+await agent.run("""
+격리된 환경에서 https://untrusted-site.com 방문
+""")
+```
+
+## 다음 단계
+
+브라우저 자동화에 대해 이해했다면:
+
+- [데이터 분석](./data-analysis.mdx) - 수집한 데이터 분석하기
+- [파일 편집](./file-editing.mdx) - 자동화로 수집한 데이터 파일 처리
+- [가이드: 웹 스크래핑](../guides/web-scraping.mdx) - 실전 웹 스크래핑 예제

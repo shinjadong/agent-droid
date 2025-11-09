@@ -1,0 +1,728 @@
+---
+title: 'Flows API'
+description: 'OpenManus 워크플로우 시스템 API 참조'
+---
+
+# Flows API 참조
+
+OpenManus의 워크플로우 시스템은 여러 에이전트를 조정하여 복잡한 작업을 수행합니다.
+
+## BaseFlow
+
+모든 워크플로우의 기본 클래스입니다.
+
+```python
+from app.flow.base import BaseFlow
+```
+
+### 클래스 정의
+
+```python
+class BaseFlow(BaseModel, ABC):
+    """여러 에이전트를 지원하는 실행 플로우의 기본 클래스"""
+
+    agents: Dict[str, BaseAgent]
+    tools: Optional[List] = None
+    primary_agent_key: Optional[str] = None
+```
+
+### 생성자
+
+```python
+def __init__(
+    self,
+    agents: Union[BaseAgent, List[BaseAgent], Dict[str, BaseAgent]],
+    **data
+):
+    """
+    BaseFlow 초기화
+
+    Parameters:
+        agents: 단일 에이전트, 에이전트 리스트, 또는 에이전트 딕셔너리
+        **data: 추가 설정 파라미터
+
+    에이전트 제공 방식:
+        - 단일 에이전트: {"default": agent}로 변환
+        - 리스트: {"agent_0": agent0, "agent_1": agent1, ...}로 변환
+        - 딕셔너리: 그대로 사용
+    """
+```
+
+### 주요 메서드
+
+#### primary_agent
+
+```python
+@property
+def primary_agent(self) -> Optional[BaseAgent]:
+    """
+    플로우의 주요 에이전트 반환
+
+    Returns:
+        primary_agent_key로 지정된 에이전트
+    """
+```
+
+#### get_agent
+
+```python
+def get_agent(self, key: str) -> Optional[BaseAgent]:
+    """
+    특정 에이전트를 키로 조회
+
+    Parameters:
+        key: 에이전트 식별 키
+
+    Returns:
+        해당 키의 에이전트 또는 None
+    """
+```
+
+#### add_agent
+
+```python
+def add_agent(self, key: str, agent: BaseAgent) -> None:
+    """
+    플로우에 새 에이전트 추가
+
+    Parameters:
+        key: 에이전트 식별 키
+        agent: 추가할 에이전트 인스턴스
+    """
+```
+
+#### execute
+
+```python
+@abstractmethod
+async def execute(self, input_text: str) -> str:
+    """
+    주어진 입력으로 플로우 실행 (추상 메서드)
+
+    Parameters:
+        input_text: 실행할 작업 내용
+
+    Returns:
+        실행 결과 문자열
+    """
+```
+
+---
+
+## PlanningFlow
+
+계획 기반 워크플로우를 관리하는 클래스입니다.
+
+```python
+from app.flow.planning import PlanningFlow
+```
+
+### 클래스 정의
+
+```python
+class PlanningFlow(BaseFlow):
+    """에이전트를 사용하여 작업 계획 및 실행을 관리하는 플로우"""
+
+    llm: LLM
+    planning_tool: PlanningTool
+    executor_keys: List[str]
+    active_plan_id: str
+    current_step_index: Optional[int]
+```
+
+### 생성자
+
+```python
+def __init__(
+    self,
+    agents: Union[BaseAgent, List[BaseAgent], Dict[str, BaseAgent]],
+    **data
+):
+    """
+    PlanningFlow 초기화
+
+    Parameters:
+        agents: 플로우에서 사용할 에이전트들
+        **data: 추가 설정
+            - executors: 실행자 에이전트 키 리스트 (선택사항)
+            - plan_id: 계획 ID (선택사항, 기본값은 자동 생성)
+            - planning_tool: PlanningTool 인스턴스 (선택사항)
+
+    예제:
+        # 단일 에이전트로 생성
+        flow = PlanningFlow(manus_agent)
+
+        # 여러 에이전트로 생성
+        flow = PlanningFlow(
+            agents={
+                "manus": Manus(),
+                "data_analysis": DataAnalysis()
+            },
+            executors=["manus", "data_analysis"]
+        )
+    """
+```
+
+### 주요 메서드
+
+#### get_executor
+
+```python
+def get_executor(self, step_type: Optional[str] = None) -> BaseAgent:
+    """
+    현재 단계에 적합한 실행자 에이전트 조회
+
+    Parameters:
+        step_type: 단계 유형 (선택사항)
+
+    Returns:
+        적합한 에이전트 인스턴스
+
+    동작:
+        1. step_type이 에이전트 키와 일치하면 해당 에이전트 반환
+        2. executor_keys에서 첫 번째 사용 가능한 에이전트 반환
+        3. 모두 실패 시 primary_agent 반환
+    """
+```
+
+#### execute
+
+```python
+async def execute(self, input_text: str) -> str:
+    """
+    에이전트를 사용하여 계획 플로우 실행
+
+    Parameters:
+        input_text: 실행할 작업 설명
+
+    Returns:
+        실행 결과 문자열
+
+    실행 프로세스:
+        1. 입력을 기반으로 초기 계획 생성
+        2. 현재 실행할 단계 조회
+        3. 적절한 에이전트로 단계 실행
+        4. 단계 완료로 표시
+        5. 모든 단계 완료까지 반복
+        6. 최종 요약 생성
+
+    예외:
+        ValueError: 주요 에이전트가 없는 경우
+        Exception: 실행 중 오류 발생 시
+
+    예제:
+        flow = PlanningFlow(agents={"manus": Manus()})
+        result = await flow.execute("웹사이트에서 데이터 수집 및 분석")
+    """
+```
+
+### 내부 메서드
+
+#### _create_initial_plan
+
+```python
+async def _create_initial_plan(self, request: str) -> None:
+    """
+    요청을 기반으로 초기 계획 생성
+
+    Parameters:
+        request: 사용자 요청
+
+    동작:
+        - LLM에 PlanningTool 제공
+        - 시스템 메시지에 에이전트 정보 포함
+        - LLM이 계획 생성
+        - 계획 생성 실패 시 기본 계획 생성
+    """
+```
+
+#### _get_current_step_info
+
+```python
+async def _get_current_step_info(self) -> tuple[Optional[int], Optional[dict]]:
+    """
+    현재 계획에서 첫 번째 미완료 단계의 인덱스와 정보 조회
+
+    Returns:
+        (step_index, step_info) 튜플
+        활성 단계가 없으면 (None, None)
+
+    step_info 구조:
+        {
+            "text": str,      # 단계 텍스트
+            "type": str       # 단계 유형 (예: [SEARCH], [CODE])
+        }
+    """
+```
+
+#### _execute_step
+
+```python
+async def _execute_step(self, executor: BaseAgent, step_info: dict) -> str:
+    """
+    지정된 에이전트로 현재 단계 실행
+
+    Parameters:
+        executor: 실행할 에이전트
+        step_info: 단계 정보 딕셔너리
+
+    Returns:
+        단계 실행 결과
+
+    동작:
+        - 현재 계획 상태 포함한 프롬프트 생성
+        - executor.run()으로 단계 실행
+        - 성공 시 단계를 완료로 표시
+    """
+```
+
+#### _mark_step_completed
+
+```python
+async def _mark_step_completed(self) -> None:
+    """
+    현재 단계를 완료로 표시
+
+    PlanningTool을 사용하여 단계 상태를 COMPLETED로 업데이트
+    """
+```
+
+#### _get_plan_text
+
+```python
+async def _get_plan_text(self) -> str:
+    """
+    현재 계획을 형식화된 텍스트로 반환
+
+    Returns:
+        계획 상태를 포함한 형식화된 문자열
+    """
+```
+
+#### _finalize_plan
+
+```python
+async def _finalize_plan(self) -> str:
+    """
+    계획 완료 및 요약 제공
+
+    Returns:
+        완료된 계획의 요약
+
+    동작:
+        - LLM을 사용하여 완료 요약 생성
+        - 실패 시 에이전트를 사용하여 대체 요약 생성
+    """
+```
+
+---
+
+## PlanStepStatus
+
+계획 단계의 가능한 상태를 정의하는 열거형입니다.
+
+```python
+from app.flow.planning import PlanStepStatus
+```
+
+### 상태 값
+
+```python
+class PlanStepStatus(str, Enum):
+    """계획 단계의 가능한 상태를 정의하는 열거형 클래스"""
+
+    NOT_STARTED = "not_started"    # 시작되지 않음
+    IN_PROGRESS = "in_progress"    # 진행 중
+    COMPLETED = "completed"        # 완료됨
+    BLOCKED = "blocked"            # 차단됨
+```
+
+### 클래스 메서드
+
+#### get_all_statuses
+
+```python
+@classmethod
+def get_all_statuses(cls) -> list[str]:
+    """
+    모든 가능한 단계 상태 값 리스트 반환
+
+    Returns:
+        ["not_started", "in_progress", "completed", "blocked"]
+    """
+```
+
+#### get_active_statuses
+
+```python
+@classmethod
+def get_active_statuses(cls) -> list[str]:
+    """
+    활성 상태를 나타내는 값 리스트 반환
+
+    Returns:
+        ["not_started", "in_progress"]
+    """
+```
+
+#### get_status_marks
+
+```python
+@classmethod
+def get_status_marks(cls) -> Dict[str, str]:
+    """
+    상태별 마커 심볼 매핑 반환
+
+    Returns:
+        {
+            "completed": "[✓]",
+            "in_progress": "[→]",
+            "blocked": "[!]",
+            "not_started": "[ ]"
+        }
+    """
+```
+
+---
+
+## FlowFactory
+
+다양한 유형의 플로우를 생성하는 팩토리 클래스입니다.
+
+```python
+from app.flow.flow_factory import FlowFactory, FlowType
+```
+
+### FlowType
+
+```python
+class FlowType(str, Enum):
+    """사용 가능한 플로우 유형"""
+
+    PLANNING = "planning"
+```
+
+### 팩토리 메서드
+
+#### create_flow
+
+```python
+@staticmethod
+def create_flow(
+    flow_type: FlowType,
+    agents: Union[BaseAgent, List[BaseAgent], Dict[str, BaseAgent]],
+    **kwargs
+) -> BaseFlow:
+    """
+    지정된 유형의 플로우 생성
+
+    Parameters:
+        flow_type: 생성할 플로우 유형
+        agents: 플로우에서 사용할 에이전트
+        **kwargs: 플로우별 추가 파라미터
+
+    Returns:
+        생성된 플로우 인스턴스
+
+    Raises:
+        ValueError: 알 수 없는 플로우 유형인 경우
+
+    예제:
+        # Planning Flow 생성
+        agents = {
+            "manus": Manus(),
+            "data_analysis": DataAnalysis()
+        }
+
+        flow = FlowFactory.create_flow(
+            flow_type=FlowType.PLANNING,
+            agents=agents,
+            executors=["manus", "data_analysis"]
+        )
+    """
+```
+
+---
+
+## 사용 예제
+
+### 기본 PlanningFlow 사용
+
+```python
+import asyncio
+from app.agent.manus import Manus
+from app.flow.planning import PlanningFlow
+
+async def main():
+    # 에이전트 생성
+    agent = Manus()
+
+    # PlanningFlow 생성
+    flow = PlanningFlow(agents=agent)
+
+    # 작업 실행
+    result = await flow.execute(
+        "GitHub에서 인기 있는 Python 프로젝트 조사 및 요약"
+    )
+
+    print(result)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 여러 에이전트를 사용하는 PlanningFlow
+
+```python
+import asyncio
+from app.agent.manus import Manus
+from app.agent.data_analysis import DataAnalysis
+from app.flow.flow_factory import FlowFactory, FlowType
+
+async def main():
+    # 여러 에이전트 생성
+    agents = {
+        "manus": Manus(),
+        "data_analysis": DataAnalysis()
+    }
+
+    # FlowFactory로 플로우 생성
+    flow = FlowFactory.create_flow(
+        flow_type=FlowType.PLANNING,
+        agents=agents,
+        executors=["manus", "data_analysis"]
+    )
+
+    # 복잡한 작업 실행
+    result = await flow.execute(
+        """
+        다음 작업을 수행하세요:
+        1. 웹에서 최신 AI 뉴스 검색
+        2. 수집한 데이터를 CSV로 저장
+        3. 데이터 분석 및 시각화
+        4. 요약 보고서 생성
+        """
+    )
+
+    print(result)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 커스텀 에이전트 선택
+
+```python
+import asyncio
+from app.agent.manus import Manus
+from app.agent.data_analysis import DataAnalysis
+from app.flow.planning import PlanningFlow
+
+async def main():
+    # 특정 역할을 가진 에이전트들 생성
+    agents = {
+        "web_searcher": Manus(
+            name="웹 검색 전문가",
+            description="웹 검색 및 데이터 수집 전문"
+        ),
+        "data_analyst": DataAnalysis(
+            name="데이터 분석가",
+            description="통계 분석 및 시각화 전문"
+        )
+    }
+
+    # PlanningFlow 생성
+    flow = PlanningFlow(
+        agents=agents,
+        executors=["web_searcher", "data_analyst"]
+    )
+
+    # 실행
+    result = await flow.execute(
+        "경쟁사 제품 가격 데이터를 수집하고 분석하여 보고서 작성"
+    )
+
+    print(result)
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+---
+
+## 오류 처리
+
+### 계획 생성 실패 처리
+
+```python
+import asyncio
+from app.agent.manus import Manus
+from app.flow.planning import PlanningFlow
+from app.logger import logger
+
+async def main():
+    try:
+        flow = PlanningFlow(agents=Manus())
+        result = await flow.execute("복잡한 작업")
+
+    except ValueError as e:
+        logger.error(f"플로우 설정 오류: {e}")
+
+    except Exception as e:
+        logger.error(f"실행 중 오류: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+### 타임아웃 설정
+
+```python
+import asyncio
+from app.agent.manus import Manus
+from app.flow.planning import PlanningFlow
+
+async def main():
+    flow = PlanningFlow(agents=Manus())
+
+    try:
+        # 60분 타임아웃
+        result = await asyncio.wait_for(
+            flow.execute("시간이 오래 걸리는 작업"),
+            timeout=3600
+        )
+        print(result)
+
+    except asyncio.TimeoutError:
+        print("작업이 제한 시간을 초과했습니다")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+---
+
+## 고급 사용법
+
+### 커스텀 Flow 구현
+
+```python
+from app.flow.base import BaseFlow
+from app.agent.base import BaseAgent
+
+class CustomFlow(BaseFlow):
+    """커스텀 워크플로우 구현"""
+
+    async def execute(self, input_text: str) -> str:
+        """커스텀 실행 로직"""
+
+        # 1. 전처리
+        processed_input = self.preprocess(input_text)
+
+        # 2. 주요 에이전트로 처리
+        result = await self.primary_agent.run(processed_input)
+
+        # 3. 후처리
+        final_result = self.postprocess(result)
+
+        return final_result
+
+    def preprocess(self, text: str) -> str:
+        """입력 전처리"""
+        return text.strip().lower()
+
+    def postprocess(self, text: str) -> str:
+        """결과 후처리"""
+        return f"최종 결과:\n{text}"
+```
+
+### 동적 에이전트 추가
+
+```python
+import asyncio
+from app.agent.manus import Manus
+from app.agent.data_analysis import DataAnalysis
+from app.flow.planning import PlanningFlow
+
+async def main():
+    # 초기 에이전트로 플로우 생성
+    flow = PlanningFlow(agents=Manus())
+
+    # 실행 중 새 에이전트 추가
+    flow.add_agent("data_analysis", DataAnalysis())
+
+    # 모든 에이전트 사용
+    result = await flow.execute("데이터 분석이 필요한 작업")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+---
+
+## 모범 사례
+
+### 1. 적절한 에이전트 선택
+
+```python
+# ✅ 좋은 예: 작업에 맞는 에이전트 구성
+agents = {
+    "manus": Manus(),           # 일반 작업용
+    "data_analysis": DataAnalysis()  # 데이터 분석용
+}
+
+flow = PlanningFlow(
+    agents=agents,
+    executors=["manus", "data_analysis"]
+)
+```
+
+### 2. 명확한 작업 설명
+
+```python
+# ✅ 좋은 예: 단계별로 명확한 작업 설명
+result = await flow.execute("""
+1. example.com에서 제품 데이터 수집
+2. 데이터를 products.csv로 저장
+3. 가격 분포 분석
+4. 분석 결과를 차트로 시각화
+""")
+
+# ❌ 나쁜 예: 모호한 설명
+result = await flow.execute("뭔가 해줘")
+```
+
+### 3. 오류 처리 및 로깅
+
+```python
+import asyncio
+from app.flow.planning import PlanningFlow
+from app.logger import logger
+
+async def safe_execute(flow: PlanningFlow, task: str):
+    """안전한 플로우 실행"""
+    try:
+        logger.info(f"작업 시작: {task}")
+        result = await asyncio.wait_for(
+            flow.execute(task),
+            timeout=3600
+        )
+        logger.info("작업 완료")
+        return result
+
+    except asyncio.TimeoutError:
+        logger.error("작업 타임아웃")
+        return "작업이 제한 시간을 초과했습니다"
+
+    except Exception as e:
+        logger.error(f"작업 실패: {e}")
+        return f"오류 발생: {str(e)}"
+```
+
+---
+
+## 참고
+
+- 관련 문서: [Flows 개념](/docs/concepts/flows)
+- 에이전트 API: [Agents API](/docs/api/agents)
+- 도구 API: [Tools API](/docs/api/tools)

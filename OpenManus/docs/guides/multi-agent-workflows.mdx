@@ -1,0 +1,486 @@
+# 멀티 에이전트 워크플로우 (Multi-Agent Workflows)
+
+이 가이드에서는 여러 AI 에이전트를 조율하여 복잡한 작업을 수행하는 방법을 설명합니다.
+
+## 개요
+
+멀티 에이전트 워크플로우는 여러 특화된 에이전트가 협력하여 복잡한 문제를 해결하는 패턴입니다.
+
+### 장점
+
+- **전문화**: 각 에이전트가 특정 작업에 최적화
+- **병렬 처리**: 독립적인 작업을 동시에 수행
+- **확장성**: 새로운 에이전트 추가가 용이
+- **신뢰성**: 한 에이전트 실패가 전체에 영향 최소화
+
+## 기본 워크플로우
+
+### 순차 실행 (Sequential)
+
+```python
+from app.flow.sequential import SequentialFlow
+from app.agent.manus import Manus
+from app.agent.data_analysis import DataAnalysis
+
+async def sequential_workflow():
+    # 에이전트들 생성
+    researcher = await Manus.create()
+    analyst = await DataAnalysis.create()
+    
+    # 순차 플로우 생성
+    flow = SequentialFlow(agents=[researcher, analyst])
+    
+    # 실행
+    result = await flow.run("""
+    1. 웹에서 최신 AI 뉴스 수집 (researcher)
+    2. 수집한 데이터 분석 (analyst)
+    """)
+    
+    print(result)
+```
+
+### 병렬 실행 (Parallel)
+
+```python
+from app.flow.parallel import ParallelFlow
+
+async def parallel_workflow():
+    # 여러 에이전트 생성
+    agents = [
+        await Manus.create() for _ in range(3)
+    ]
+    
+    # 병렬 플로우
+    flow = ParallelFlow(agents=agents)
+    
+    # 각 에이전트에 다른 작업 할당
+    tasks = [
+        "GitHub 트렌딩 리포지토리 수집",
+        "Hacker News 상위 뉴스 수집",
+        "Reddit r/programming 인기 게시물 수집"
+    ]
+    
+    results = await flow.run_parallel(tasks)
+    
+    for task, result in zip(tasks, results):
+        print(f"{task}: {result}")
+```
+
+## 계획 기반 워크플로우
+
+### 자동 작업 분해
+
+```python
+from app.flow.planning import PlanningFlow
+
+async def planning_workflow():
+    # 계획 플로우 생성
+    flow = await PlanningFlow.create()
+    
+    # 복잡한 작업을 자동으로 분해하고 실행
+    result = await flow.run("""
+    AI 기술 동향 리포트 작성:
+    - 최신 뉴스 수집
+    - 주요 기업 분석
+    - 기술 트렌드 정리
+    - 시각화 차트 생성
+    - 종합 리포트 작성
+    """)
+    
+    print(result)
+```
+
+### 계획 확인 및 수정
+
+```python
+async def reviewed_planning():
+    flow = await PlanningFlow.create()
+    
+    # 계획만 생성
+    plan = await flow.create_plan("""
+    전자상거래 데이터 분석 및 대시보드 생성
+    """)
+    
+    print("생성된 계획:")
+    for i, task in enumerate(plan.tasks, 1):
+        print(f"{i}. {task.description}")
+        print(f"   담당: {task.agent_type}")
+        print(f"   예상 시간: {task.estimated_time}")
+    
+    # 사용자 확인 후 실행
+    if input("실행하시겠습니까? (y/n): ") == "y":
+        result = await flow.execute_plan(plan)
+        print(result)
+```
+
+## 실전 패턴
+
+### 리서치 → 분석 → 리포팅
+
+```python
+async def research_analysis_report():
+    """완전한 리서치 파이프라인"""
+    
+    # 1. 리서치 에이전트: 정보 수집
+    researcher = await Manus.create()
+    research_result = await researcher.run("""
+    '양자 컴퓨팅' 주제로:
+    - 최신 논문 5개 찾기
+    - 주요 기업 및 제품 조사
+    - 시장 규모 데이터 수집
+    결과를 research_data.json으로 저장
+    """)
+    
+    # 2. 분석 에이전트: 데이터 분석
+    analyst = await DataAnalysis.create()
+    analysis_result = await analyst.run("""
+    research_data.json을 분석해서:
+    - 주요 트렌드 파악
+    - 기업별 비교
+    - 시장 전망 분석
+    결과를 analysis_result.json으로 저장
+    """)
+    
+    # 3. 작성 에이전트: 리포트 생성
+    writer = await Manus.create()
+    report = await writer.run("""
+    analysis_result.json을 바탕으로
+    10페이지 분량의 전문가 리포트 작성:
+    - Executive Summary
+    - 기술 동향
+    - 시장 분석
+    - 미래 전망
+    - 결론 및 제언
+    
+    report.md로 저장
+    """)
+    
+    return report
+```
+
+### 데이터 파이프라인
+
+```python
+async def data_pipeline():
+    """데이터 수집 → 처리 → 분석 → 시각화"""
+    
+    flow = await PlanningFlow.create()
+    
+    result = await flow.run("""
+    소셜 미디어 트렌드 분석 파이프라인:
+    
+    1. 데이터 수집
+       - Twitter API로 트윗 수집
+       - Reddit API로 게시물 수집
+       - 결과를 raw_data/ 폴더에 저장
+    
+    2. 데이터 정제
+       - 중복 제거
+       - 불완전한 데이터 필터링
+       - 텍스트 정규화
+       - clean_data/ 폴더에 저장
+    
+    3. 감성 분석
+       - 각 게시물의 감성 점수 계산
+       - 주제별 분류
+       - sentiment_results.csv 저장
+    
+    4. 트렌드 분석
+       - 시간대별 트렌드
+       - 인기 키워드 추출
+       - 영향력 있는 사용자 파악
+    
+    5. 시각화
+       - 트렌드 차트
+       - 워드 클라우드
+       - 네트워크 그래프
+       - dashboard.html 생성
+    
+    6. 리포트
+       - 주요 인사이트 요약
+       - 액션 아이템
+       - trend_report.pdf 생성
+    """)
+    
+    return result
+```
+
+### 품질 검증 파이프라인
+
+```python
+async def quality_pipeline():
+    """개발 → 테스트 → 리뷰 → 배포"""
+    
+    # 개발 에이전트
+    developer = await Manus.create()
+    
+    # 테스터 에이전트
+    tester = await Manus.create()
+    
+    # 리뷰어 에이전트
+    reviewer = await Manus.create()
+    
+    # 1. 개발
+    code = await developer.run("""
+    사용자 인증 API 구현:
+    - JWT 기반 인증
+    - 로그인/로그아웃 엔드포인트
+    - 토큰 갱신 기능
+    auth_api.py로 저장
+    """)
+    
+    # 2. 테스트
+    test_result = await tester.run("""
+    auth_api.py에 대한 테스트:
+    - 단위 테스트 작성
+    - 통합 테스트 작성
+    - 테스트 실행 및 커버리지 확인
+    - 결과 리포트
+    """)
+    
+    if "실패" in test_result:
+        return "테스트 실패. 수정 필요."
+    
+    # 3. 코드 리뷰
+    review = await reviewer.run("""
+    auth_api.py 코드 리뷰:
+    - 보안 취약점 확인
+    - 모범 사례 준수 확인
+    - 성능 이슈 확인
+    - 개선 제안
+    """)
+    
+    return {
+        "code": code,
+        "test_result": test_result,
+        "review": review
+    }
+```
+
+## 에이전트 간 통신
+
+### 공유 컨텍스트
+
+```python
+from app.schema import Memory, Message
+
+class SharedContext:
+    """에이전트 간 공유 컨텍스트"""
+    
+    def __init__(self):
+        self.data = {}
+        self.messages = []
+    
+    def set(self, key: str, value: any):
+        """데이터 저장"""
+        self.data[key] = value
+        self.messages.append(
+            Message(role="system", content=f"{key} 업데이트됨")
+        )
+    
+    def get(self, key: str):
+        """데이터 조회"""
+        return self.data.get(key)
+    
+    def get_messages(self):
+        """공유 메시지 조회"""
+        return self.messages
+
+async def collaborative_workflow():
+    context = SharedContext()
+    
+    # 에이전트 1: 데이터 수집
+    agent1 = await Manus.create()
+    result1 = await agent1.run("GitHub 트렌딩 수집")
+    context.set("github_data", result1)
+    
+    # 에이전트 2: 이전 결과 활용
+    agent2 = await DataAnalysis.create()
+    github_data = context.get("github_data")
+    result2 = await agent2.run(f"""
+    다음 데이터를 분석해줘:
+    {github_data}
+    """)
+    context.set("analysis", result2)
+    
+    # 최종 결과
+    return context.get("analysis")
+```
+
+### 메시지 전달
+
+```python
+async def message_passing():
+    """에이전트 간 명시적 메시지 전달"""
+    
+    agents = {
+        "collector": await Manus.create(),
+        "processor": await DataAnalysis.create(),
+        "reporter": await Manus.create()
+    }
+    
+    # 수집
+    data = await agents["collector"].run("데이터 수집")
+    
+    # 처리
+    processed = await agents["processor"].run(
+        f"다음 데이터 처리: {data}"
+    )
+    
+    # 리포팅
+    report = await agents["reporter"].run(
+        f"다음 결과로 리포트 작성: {processed}"
+    )
+    
+    return report
+```
+
+## 고급 패턴
+
+### 조건부 분기
+
+```python
+async def conditional_workflow():
+    """조건에 따라 다른 에이전트 실행"""
+    
+    classifier = await Manus.create()
+    
+    # 작업 분류
+    task_type = await classifier.run("""
+    다음 작업의 유형을 판단해줘:
+    '주식 시장 데이터 분석 및 예측'
+    
+    유형: data_analysis | web_scraping | code_generation
+    """)
+    
+    # 분기
+    if "data_analysis" in task_type:
+        agent = await DataAnalysis.create()
+    elif "web_scraping" in task_type:
+        agent = await Manus.create()  # WebScraper
+    else:
+        agent = await Manus.create()  # 기본
+    
+    # 실행
+    result = await agent.run("작업 수행")
+    return result
+```
+
+### 재시도 및 폴백
+
+```python
+async def retry_workflow():
+    """실패시 재시도 및 폴백"""
+    
+    primary_agent = await Manus.create()
+    fallback_agent = await Manus.create()
+    
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        try:
+            result = await primary_agent.run("복잡한 작업")
+            
+            # 성공 확인
+            if "성공" in result or "완료" in result:
+                return result
+            
+        except Exception as e:
+            print(f"시도 {attempt + 1} 실패: {e}")
+            
+            if attempt == max_retries - 1:
+                # 최종 실패시 폴백
+                return await fallback_agent.run(
+                    "간단한 대체 작업"
+                )
+    
+    return "작업 실패"
+```
+
+### 동적 에이전트 생성
+
+```python
+async def dynamic_agents():
+    """작업 부하에 따라 동적으로 에이전트 생성"""
+    
+    tasks = ["작업1", "작업2", "작업3", "작업4", "작업5"]
+    
+    # 작업당 하나의 에이전트
+    agents = [await Manus.create() for _ in tasks]
+    
+    # 병렬 실행
+    import asyncio
+    results = await asyncio.gather(*[
+        agent.run(task)
+        for agent, task in zip(agents, tasks)
+    ])
+    
+    # 정리
+    await asyncio.gather(*[
+        agent.cleanup() for agent in agents
+    ])
+    
+    return results
+```
+
+## 모범 사례
+
+### 1. 명확한 책임 분리
+
+```python
+# ✅ 각 에이전트의 역할이 명확
+data_collector = await WebScraperAgent.create()
+data_analyst = await DataAnalystAgent.create()
+report_writer = await ReportWriterAgent.create()
+
+# ❌ 모든 것을 하나의 에이전트에
+general_agent = await Manus.create()
+```
+
+### 2. 에러 처리
+
+```python
+async def robust_workflow():
+    try:
+        agent1_result = await agent1.run("작업1")
+    except Exception as e:
+        logger.error(f"Agent1 실패: {e}")
+        # 폴백 또는 복구
+        agent1_result = "기본값"
+    
+    try:
+        agent2_result = await agent2.run(f"작업2: {agent1_result}")
+    except Exception as e:
+        logger.error(f"Agent2 실패: {e}")
+        return "워크플로우 실패"
+    
+    return agent2_result
+```
+
+### 3. 리소스 관리
+
+```python
+async def managed_workflow():
+    agents = []
+    
+    try:
+        # 에이전트 생성
+        agents = [await Manus.create() for _ in range(5)]
+        
+        # 작업 수행
+        results = await process_with_agents(agents)
+        
+        return results
+        
+    finally:
+        # 정리
+        await asyncio.gather(*[
+            agent.cleanup() for agent in agents
+        ])
+```
+
+## 다음 단계
+
+- [에이전트 개념](../concepts/agents.mdx) - 에이전트 아키텍처
+- [워크플로우 개념](../concepts/flows.mdx) - 플로우 시스템 이해
+- [커스텀 에이전트 만들기](./building-custom-agent.mdx) - 전문화된 에이전트 개발
