@@ -1,5 +1,5 @@
 """
-DroidRun CLI - Command line interface for controlling Android devices through LLM agents.
+DroidRun CLI - LLM 에이전트를 통해 Android 기기를 제어하는 명령줄 인터페이스.
 """
 
 import asyncio
@@ -35,17 +35,17 @@ from droidrun.telemetry import print_telemetry_message
 from droidrun.config_manager.path_resolver import PathResolver
 from droidrun.agent.utils.llm_picker import load_llm
 
-# Suppress all warnings
+# 모든 경고 억제
 warnings.filterwarnings("ignore")
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ["GRPC_ENABLE_FORK_SUPPORT"] = "false"
 
 console = Console()
 
-# Ensure config.yaml exists in package dir
+# 패키지 디렉토리에 config.yaml이 존재하는지 확인
 package_config_path = PathResolver.get_project_root() / "config.yaml"
 if not package_config_path.exists():
-    # Config not found, copy config_example.yaml to package dir
+    # 설정 파일을 찾을 수 없음, config_example.yaml을 패키지 디렉토리로 복사
     import shutil
 
     example_path = PathResolver.get_project_root() / "config_example.yaml"
@@ -104,12 +104,12 @@ async def run_command(
     temperature: float | None = None,
     **kwargs,
 ) -> bool:
-    """Run a command on your Android device using natural language.
+    """자연어를 사용하여 Android 기기에서 명령을 실행합니다.
 
     Returns:
-        bool: True if the task completed successfully, False otherwise.
+        bool: 작업이 성공적으로 완료되면 True, 그렇지 않으면 False.
     """
-    # Load config and apply CLI overrides via direct mutation
+    # 설정을 로드하고 직접 변경을 통해 CLI 재정의 적용
     config_path = config_path or "config.yaml"
     config = DroidrunConfig.from_yaml(config_path)
 
@@ -154,7 +154,7 @@ async def run_command(
                 config.agent.codeact.vision = vision
                 logger.debug(f"CLI override: vision={vision} (all agents)")
             else:
-                # Apply individual agent vision overrides
+                # 개별 에이전트 비전 재정의 적용
                 if manager_vision is not None:
                     config.agent.manager.vision = manager_vision
                 if executor_vision is not None:
@@ -291,7 +291,7 @@ async def run_command(
 
 class DroidRunCLI(click.Group):
     def parse_args(self, ctx, args):
-        # If the first arg is not an option and not a known command, treat as 'run'
+        # 첫 번째 인자가 옵션이 아니고 알려진 명령이 아니면 'run'으로 처리
         if args and not args[0].startswith("-") and args[0] not in self.commands:
             args.insert(0, "run")
 
@@ -299,7 +299,7 @@ class DroidRunCLI(click.Group):
 
 
 def _print_version(ctx, param, value):
-    """Click callback to print version and exit early when --version is passed."""
+    """--version이 전달될 때 버전을 출력하고 조기 종료하는 Click 콜백."""
     if not value or ctx.resilient_parsing:
         return
     version = None
@@ -346,7 +346,7 @@ def _print_version(ctx, param, value):
     help="Show droidrun version and exit",
 )
 def cli():
-    """DroidRun - Control your Android device through LLM agents."""
+    """DroidRun - LLM 에이전트를 통해 Android 기기를 제어합니다."""
     pass
 
 
@@ -422,7 +422,7 @@ async def run(
     save_trajectory: str | None,
     ios: bool | None,
 ):
-    """Run a command on your Android device using natural language."""
+    """자연어를 사용하여 Android 기기에서 명령을 실행합니다."""
 
     try:
         success = await run_command(
@@ -444,8 +444,8 @@ async def run(
             ios=ios if ios is not None else False,
         )
     finally:
-        # Disable DroidRun keyboard after execution
-        # Note: Port forwards are managed automatically and persist until device disconnect
+        # 실행 후 DroidRun 키보드 비활성화
+        # 참고: 포트 포워드는 자동으로 관리되며 기기 연결 해제까지 유지됨
         try:
             if not (ios if ios is not None else False):
                 device_obj = await adb.device(device)
@@ -456,14 +456,14 @@ async def run(
         except Exception:
             click.echo("Failed to disable DroidRun keyboard")
 
-    # Exit with appropriate code
+    # 적절한 코드로 종료
     sys.exit(0 if success else 1)
 
 
 @cli.command()
 @coro
 async def devices():
-    """List connected Android devices."""
+    """연결된 Android 기기 목록을 표시합니다."""
     try:
         devices = await adb.list()
         if not devices:
@@ -481,7 +481,7 @@ async def devices():
 @click.argument("serial")
 @coro
 async def connect(serial: str):
-    """Connect to a device over TCP/IP."""
+    """TCP/IP를 통해 기기에 연결합니다."""
     try:
         device = await adb.connect(serial)
         if device.count("already connected"):
@@ -496,7 +496,7 @@ async def connect(serial: str):
 @click.argument("serial")
 @coro
 async def disconnect(serial: str):
-    """Disconnect from a device."""
+    """기기 연결을 해제합니다."""
     try:
         success = await adb.disconnect(serial, raise_error=True)
         if success:
@@ -519,7 +519,7 @@ async def disconnect(serial: str):
 )
 @coro
 async def setup(path: str | None, device: str | None, debug: bool):
-    """Install and enable the DroidRun Portal on a device."""
+    """기기에 DroidRun Portal을 설치하고 활성화합니다."""
     try:
         if not device:
             devices = await adb.list()
@@ -617,8 +617,8 @@ async def setup(path: str | None, device: str | None, debug: bool):
 @click.option("--debug/--no-debug", default=None, help="Enable verbose debug logging")
 @coro
 async def ping(device: str | None, tcp: bool | None, debug: bool | None):
-    """Ping a device to check if it is ready and accessible."""
-    # Handle None defaults
+    """기기가 준비되어 있고 접근 가능한지 확인하기 위해 ping을 보냅니다."""
+    # None 기본값 처리
     debug_mode = debug if debug is not None else False
     use_tcp_mode = tcp if tcp is not None else False
 
@@ -646,7 +646,7 @@ async def ping(device: str | None, tcp: bool | None, debug: bool | None):
             traceback.print_exc()
 
 
-# Add macro commands as a subgroup
+# 매크로 명령을 하위 그룹으로 추가
 cli.add_command(macro_cli, name="macro")
 
 

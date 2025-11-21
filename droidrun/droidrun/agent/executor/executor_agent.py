@@ -1,10 +1,10 @@
 """
-ExecutorAgent - Action execution workflow.
+ExecutorAgent - 작업 실행 워크플로우.
 
-This agent is responsible for:
-- Taking a specific subgoal from the Manager
-- Analyzing the current UI state
-- Selecting and executing appropriate actions
+이 에이전트는 다음을 담당합니다:
+- Manager로부터 특정 하위 목표 받기
+- 현재 UI 상태 분석
+- 적절한 작업 선택 및 실행
 """
 
 from __future__ import annotations
@@ -49,14 +49,14 @@ logger = logging.getLogger("droidrun")
 
 class ExecutorAgent(Workflow):
     """
-    Action execution agent that performs specific actions.
+    특정 작업을 수행하는 작업 실행 에이전트.
 
-    The Executor:
-    1. Receives a subgoal from the Manager
-    2. Analyzes current UI state and context
-    3. Selects an appropriate action to take
-    4. Executes the action on the device
-    5. Reports the outcome
+    Executor는:
+    1. Manager로부터 하위 목표를 받음
+    2. 현재 UI 상태와 컨텍스트 분석
+    3. 수행할 적절한 작업 선택
+    4. 기기에서 작업 실행
+    5. 결과 보고
     """
 
     def __init__(

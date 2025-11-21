@@ -1,10 +1,10 @@
 """
-ScripterAgent - ReAct agent for executing Python scripts (off-device operations).
+ScripterAgent - Python 스크립트 실행을 위한 ReAct 에이전트 (기기 외부 작업).
 
-Works like CodeAct but:
-- No device tools (no click, type, swipe, etc.)
-- When done, returns message without code (not a function call)
-- Variables persist across iterations (Jupyter notebook style)
+CodeAct와 유사하지만:
+- 기기 도구 없음 (클릭, 타이핑, 스와이프 등 없음)
+- 완료 시, 코드 없이 메시지 반환 (함수 호출 아님)
+- 반복 간 변수 유지 (Jupyter 노트북 스타일)
 """
 
 import asyncio
@@ -36,12 +36,12 @@ logger = logging.getLogger("droidrun")
 
 class ScripterAgent(Workflow):
     """
-    ReAct agent for executing Python scripts (off-device operations).
+    Python 스크립트 실행을 위한 ReAct 에이전트 (기기 외부 작업).
 
-    Like CodeAct but for off-device operations:
-    - No device tools
-    - Variables persist across code executions (Jupyter style)
-    - Signals completion by returning message without code block
+    CodeAct와 유사하지만 기기 외부 작업용:
+    - 기기 도구 없음
+    - 코드 실행 간 변수 유지 (Jupyter 스타일)
+    - 코드 블록 없이 메시지를 반환하여 완료 신호
     """
 
     def __init__(
@@ -65,10 +65,10 @@ class ScripterAgent(Workflow):
         self.message_history = []
         self.step_counter = 0
 
-        # Build tool list (Python libraries only)
+        # 도구 목록 구축 (Python 라이브러리만)
         self.tool_list = {}
 
-        # Add standard library imports
+        # 표준 라이브러리 임포트 추가
         try:
             import requests
 

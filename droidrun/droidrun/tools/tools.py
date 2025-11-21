@@ -4,20 +4,20 @@ from abc import ABC, abstractmethod
 from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
-# Get a logger for this module
+# 이 모듈에 대한 로거 가져오기
 logger = logging.getLogger(__name__)
 
 
 class Tools(ABC):
     """
-    Abstract base class for all tools.
-    This class provides a common interface for all tools to implement.
+    모든 도구의 추상 기본 클래스.
+    이 클래스는 모든 도구가 구현할 공통 인터페이스를 제공합니다.
     """
 
     @staticmethod
     def ui_action(func):
         """
-        Decorator to capture screenshots and UI states for actions that modify the UI.
+        UI를 수정하는 작업에 대한 스크린샷과 UI 상태를 캡처하는 데코레이터.
         """
 
         @wraps(func)
@@ -25,7 +25,7 @@ class Tools(ABC):
             self = args[0]
             result = await func(*args, **kwargs)
 
-            # Check if save_trajectories attribute exists and is set to "action"
+            # save_trajectories 속성이 존재하고 "action"으로 설정되어 있는지 확인
             if (
                 hasattr(self, "save_trajectories")
                 and self.save_trajectories == "action"
@@ -47,21 +47,21 @@ class Tools(ABC):
     @abstractmethod
     async def get_state(self) -> Dict[str, Any]:
         """
-        Get the current state of the tool.
+        도구의 현재 상태를 가져옵니다.
         """
         pass
 
     @abstractmethod
     async def get_date(self) -> str:
         """
-        Get the current date on device.
+        기기의 현재 날짜를 가져옵니다.
         """
         pass
 
     @abstractmethod
     async def tap_by_index(self, index: int) -> str:
         """
-        Tap the element at the given index.
+        주어진 인덱스의 요소를 탭합니다.
         """
         pass
 
@@ -74,7 +74,7 @@ class Tools(ABC):
         self, start_x: int, start_y: int, end_x: int, end_y: int, duration_ms: int = 300
     ) -> bool:
         """
-        Swipe from the given start coordinates to the given end coordinates.
+        주어진 시작 좌표에서 끝 좌표로 스와이프합니다.
         """
         pass
 
@@ -88,84 +88,84 @@ class Tools(ABC):
         duration_ms: int = 3000,
     ) -> bool:
         """
-        Drag from the given start coordinates to the given end coordinates.
+        주어진 시작 좌표에서 끝 좌표로 드래그합니다.
         """
         pass
 
     @abstractmethod
     async def input_text(self, text: str, index: int = -1, clear: bool = False) -> str:
         """
-        Input the given text into a focused input field.
+        포커스된 입력 필드에 주어진 텍스트를 입력합니다.
         """
         pass
 
     @abstractmethod
     async def back(self) -> str:
         """
-        Press the back button.
+        뒤로 가기 버튼을 누릅니다.
         """
         pass
 
     @abstractmethod
     async def press_key(self, keycode: int) -> str:
         """
-        Enter the given keycode.
+        주어진 키코드를 입력합니다.
         """
         pass
 
     @abstractmethod
     async def start_app(self, package: str, activity: str = "") -> str:
         """
-        Start the given app.
+        주어진 앱을 시작합니다.
         """
         pass
 
     @abstractmethod
     async def take_screenshot(self) -> Tuple[str, bytes]:
         """
-        Take a screenshot of the device.
+        기기의 스크린샷을 캡처합니다.
         """
         pass
 
     @abstractmethod
     async def list_packages(self, include_system_apps: bool = False) -> List[str]:
         """
-        List all packages on the device.
+        기기의 모든 패키지를 나열합니다.
         """
         pass
 
     @abstractmethod
     async def get_apps(self, include_system_apps: bool = True) -> List[Dict[str, Any]]:
         """
-        List all apps on the device.
+        기기의 모든 앱을 나열합니다.
         """
         pass
 
     @abstractmethod
     def remember(self, information: str) -> str:
         """
-        Remember the given information. This is used to store information in the tool's memory.
+        주어진 정보를 기억합니다. 이는 도구의 메모리에 정보를 저장하는 데 사용됩니다.
         """
         pass
 
     @abstractmethod
     async def get_memory(self) -> List[str]:
         """
-        Get the memory of the tool.
+        도구의 메모리를 가져옵니다.
         """
         pass
 
     @abstractmethod
     async def complete(self, success: bool, reason: str = "") -> None:
         """
-        Complete the tool. This is used to indicate that the tool has completed its task.
+        도구를 완료합니다. 이는 도구가 작업을 완료했음을 나타내는 데 사용됩니다.
         """
         pass
 
     @abstractmethod
     def _extract_element_coordinates_by_index(self, index: int) -> Tuple[int, int]:
         """
-        Extract the coordinates of the element with the given index.
+        주어진 인덱스의 요소 좌표를 추출합니다.
         """
         pass
 
@@ -174,33 +174,33 @@ def describe_tools(
     tools: Tools, exclude_tools: Optional[List[str]] = None
 ) -> Dict[str, Callable[..., Any]]:
     """
-    Describe the tools available for the given Tools instance.
+    주어진 Tools 인스턴스에 사용 가능한 도구들을 설명합니다.
 
     Args:
-        tools: The Tools instance to describe.
-        exclude_tools: List of tool names to exclude from the description.
+        tools: 설명할 Tools 인스턴스.
+        exclude_tools: 설명에서 제외할 도구 이름 목록.
 
     Returns:
-        A dictionary mapping tool names to their descriptions.
+        도구 이름을 설명에 매핑하는 딕셔너리.
     """
     exclude_tools = exclude_tools or []
 
     description = {
-        # UI interaction
+        # UI 상호작용
         "swipe": tools.swipe,
         "input_text": tools.input_text,
         "press_key": tools.press_key,
         "tap_by_index": tools.tap_by_index,
         "drag": tools.drag,
-        # App management
+        # 앱 관리
         "start_app": tools.start_app,
         "list_packages": tools.list_packages,
-        # state management
+        # 상태 관리
         "remember": tools.remember,
         "complete": tools.complete,
     }
 
-    # Remove excluded tools
+    # 제외된 도구 제거
     for tool_name in exclude_tools:
         description.pop(tool_name, None)
 

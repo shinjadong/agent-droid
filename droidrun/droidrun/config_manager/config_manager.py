@@ -10,10 +10,10 @@ from droidrun.config_manager.path_resolver import PathResolver
 from droidrun.config_manager.safe_execution import SafeExecutionConfig
 
 
-# ---------- Config Schema ----------
+# ---------- 설정 스키마 ----------
 @dataclass
 class LLMProfile:
-    """LLM profile configuration."""
+    """LLM 프로필 설정."""
 
     provider: str = "GoogleGenAI"
     model: str = "models/gemini-2.0-flash-exp"
@@ -23,24 +23,24 @@ class LLMProfile:
     kwargs: Dict[str, Any] = field(default_factory=dict)
 
     def to_load_llm_kwargs(self) -> Dict[str, Any]:
-        """Convert profile to kwargs for load_llm function."""
+        """프로필을 load_llm 함수용 kwargs로 변환합니다."""
         result = {
             "model": self.model,
             "temperature": self.temperature,
         }
-        # Add optional URL parameters
+        # 선택적 URL 매개변수 추가
         if self.base_url:
             result["base_url"] = self.base_url
         if self.api_base:
             result["api_base"] = self.api_base
-        # Merge additional kwargs
+        # 추가 kwargs 병합
         result.update(self.kwargs)
         return result
 
 
 @dataclass
 class CodeActConfig:
-    """CodeAct agent configuration."""
+    """CodeAct 에이전트 설정."""
 
     vision: bool = False
     system_prompt: str = "system.jinja2"
@@ -50,7 +50,7 @@ class CodeActConfig:
 
 @dataclass
 class ManagerConfig:
-    """Manager agent configuration."""
+    """Manager 에이전트 설정."""
 
     vision: bool = False
     system_prompt: str = "system.jinja2"
@@ -58,7 +58,7 @@ class ManagerConfig:
 
 @dataclass
 class ExecutorConfig:
-    """Executor agent configuration."""
+    """Executor 에이전트 설정."""
 
     vision: bool = False
     system_prompt: str = "system.jinja2"
@@ -66,7 +66,7 @@ class ExecutorConfig:
 
 @dataclass
 class ScripterConfig:
-    """Scripter agent configuration."""
+    """Scripter 에이전트 설정."""
 
     enabled: bool = True
     max_steps: int = 10
@@ -77,7 +77,7 @@ class ScripterConfig:
 
 @dataclass
 class AppCardConfig:
-    """App card configuration."""
+    """앱 카드 설정."""
 
     enabled: bool = True
     mode: str = "local"  # local | server | composite
@@ -89,7 +89,7 @@ class AppCardConfig:
 
 @dataclass
 class AgentConfig:
-    """Agent-related configuration."""
+    """에이전트 관련 설정."""
 
     max_steps: int = 15
     reasoning: bool = False
@@ -104,34 +104,34 @@ class AgentConfig:
     app_cards: AppCardConfig = field(default_factory=AppCardConfig)
 
     def get_codeact_system_prompt_path(self) -> str:
-        """Get resolved absolute path to CodeAct system prompt."""
+        """CodeAct 시스템 프롬프트의 절대 경로를 가져옵니다."""
         path = f"{self.prompts_dir}/codeact/{self.codeact.system_prompt}"
         return str(PathResolver.resolve(path, must_exist=True))
 
     def get_codeact_user_prompt_path(self) -> str:
-        """Get resolved absolute path to CodeAct user prompt."""
+        """CodeAct 사용자 프롬프트의 절대 경로를 가져옵니다."""
         path = f"{self.prompts_dir}/codeact/{self.codeact.user_prompt}"
         return str(PathResolver.resolve(path, must_exist=True))
 
     def get_manager_system_prompt_path(self) -> str:
-        """Get resolved absolute path to Manager system prompt."""
+        """Manager 시스템 프롬프트의 절대 경로를 가져옵니다."""
         path = f"{self.prompts_dir}/manager/{self.manager.system_prompt}"
         return str(PathResolver.resolve(path, must_exist=True))
 
     def get_executor_system_prompt_path(self) -> str:
-        """Get resolved absolute path to Executor system prompt."""
+        """Executor 시스템 프롬프트의 절대 경로를 가져옵니다."""
         path = f"{self.prompts_dir}/executor/{self.executor.system_prompt}"
         return str(PathResolver.resolve(path, must_exist=True))
 
     def get_scripter_system_prompt_path(self) -> str:
-        """Get resolved absolute path to Scripter system prompt."""
+        """Scripter 시스템 프롬프트의 절대 경로를 가져옵니다."""
         path = f"{self.prompts_dir}/scripter/{self.scripter.system_prompt_path}"
         return str(PathResolver.resolve(path, must_exist=True))
 
 
 @dataclass
 class DeviceConfig:
-    """Device-related configuration."""
+    """기기 관련 설정."""
 
     serial: Optional[str] = None
     use_tcp: bool = False
@@ -140,29 +140,29 @@ class DeviceConfig:
 
 @dataclass
 class TelemetryConfig:
-    """Telemetry configuration."""
+    """원격 측정 설정."""
 
     enabled: bool = True
 
 
 @dataclass
 class TracingConfig:
-    """Tracing configuration."""
+    """추적 설정."""
 
     enabled: bool = False
     provider: str = "phoenix"  # "phoenix" or "langfuse"
-    langfuse_secret_key: str = ""  # Set as LANGFUSE_SECRET_KEY env var if not empty
-    langfuse_public_key: str = ""  # Set as LANGFUSE_PUBLIC_KEY env var if not empty
-    langfuse_host: str = ""  # Set as LANGFUSE_HOST env var if not empty
+    langfuse_secret_key: str = ""  # 비어 있지 않으면 LANGFUSE_SECRET_KEY 환경 변수로 설정
+    langfuse_public_key: str = ""  # 비어 있지 않으면 LANGFUSE_PUBLIC_KEY 환경 변수로 설정
+    langfuse_host: str = ""  # 비어 있지 않으면 LANGFUSE_HOST 환경 변수로 설정
     langfuse_user_id: str = "anonymous"
     langfuse_session_id: str = (
-        ""  # Empty = auto-generate UUID; set to custom value to persist across runs
+        ""  # 비어 있음 = UUID 자동 생성; 실행 간 유지하려면 사용자 정의 값 설정
     )
 
 
 @dataclass
 class LoggingConfig:
-    """Logging configuration."""
+    """로깅 설정."""
 
     debug: bool = False
     save_trajectory: str = "none"
@@ -172,14 +172,14 @@ class LoggingConfig:
 
 @dataclass
 class ToolsConfig:
-    """Tools configuration."""
+    """도구 설정."""
 
     allow_drag: bool = False
 
 
 @dataclass
 class CredentialsConfig:
-    """Credentials configuration."""
+    """자격 증명 설정."""
 
     enabled: bool = False
     file_path: str = "credentials.yaml"
@@ -187,7 +187,7 @@ class CredentialsConfig:
 
 @dataclass
 class DroidrunConfig:
-    """Complete DroidRun configuration schema."""
+    """완전한 DroidRun 설정 스키마."""
 
     agent: AgentConfig = field(default_factory=AgentConfig)
     llm_profiles: Dict[str, LLMProfile] = field(default_factory=dict)
@@ -200,13 +200,13 @@ class DroidrunConfig:
     safe_execution: SafeExecutionConfig = field(default_factory=SafeExecutionConfig)
 
     def __post_init__(self):
-        """Ensure default profiles exist."""
+        """기본 프로필이 존재하는지 확인합니다."""
         if not self.llm_profiles:
             self.llm_profiles = self._default_profiles()
 
     @staticmethod
     def _default_profiles() -> Dict[str, LLMProfile]:
-        """Get default agent specific LLM profiles."""
+        """기본 에이전트별 LLM 프로필을 가져옵니다."""
         return {
             "manager": LLMProfile(
                 provider="GoogleGenAI",

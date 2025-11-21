@@ -1,10 +1,10 @@
 """
-DroidAgent - A wrapper class that coordinates the planning and execution of tasks
-to achieve a user's goal on an Android device.
+DroidAgent - Android 기기에서 사용자의 목표를 달성하기 위해 작업의 계획과 실행을
+조정하는 래퍼 클래스.
 
-Architecture:
-- When reasoning=False: Uses CodeActAgent directly
-- When reasoning=True: Uses Manager (planning) + Executor (action) workflows
+아키텍처:
+- reasoning=False일 때: CodeActAgent를 직접 사용
+- reasoning=True일 때: Manager (계획) + Executor (작업) 워크플로우 사용
 """
 
 import logging
@@ -76,20 +76,20 @@ logger = logging.getLogger("droidrun")
 
 class DroidAgent(Workflow):
     """
-    A wrapper class that coordinates between agents to achieve a user's goal.
+    사용자의 목표를 달성하기 위해 에이전트들 간을 조정하는 래퍼 클래스.
 
-    Reasoning modes:
-    - reasoning=False: Uses CodeActAgent directly for immediate execution
-    - reasoning=True: Uses ManagerAgent (planning) + ExecutorAgent (actions)
+    추론 모드:
+    - reasoning=False: 즉시 실행을 위해 CodeActAgent를 직접 사용
+    - reasoning=True: ManagerAgent (계획) + ExecutorAgent (작업) 사용
     """
 
     @staticmethod
     def _configure_default_logging(debug: bool = False):
         """
-        Configure default logging for DroidAgent if no handlers are present.
-        This ensures logs are visible when using DroidAgent directly.
+        핸들러가 없는 경우 DroidAgent의 기본 로깅을 설정합니다.
+        이는 DroidAgent를 직접 사용할 때 로그가 표시되도록 보장합니다.
         """
-        # Only configure if no handlers exist (avoid duplicate configuration)
+        # 핸들러가 없는 경우에만 설정 (중복 설정 방지)
         if not logger.handlers:
             # Create a console handler
             handler = logging.StreamHandler()
@@ -123,22 +123,22 @@ class DroidAgent(Workflow):
         **kwargs,
     ):
         """
-        Initialize the DroidAgent wrapper.
+        DroidAgent 래퍼를 초기화합니다.
 
         Args:
-            goal: User's goal or command
-            config: Full config (required if llms not provided)
-            llms: Optional dict of agent-specific LLMs or single LLM for all.
-                  If not provided, LLMs will be loaded from config profiles.
-            tools: Either a Tools instance (for custom/pre-configured tools) or None (use default from config).
-            custom_tools: Custom tool definitions
-            credentials: Dict of credentials {"SECRET_ID": "value"} or None (will use config.credentials if available)
-            variables: Optional dict of custom variables accessible throughout execution
-            output_model: Optional Pydantic model for structured output extraction from final answer
-            prompts: Optional dict of custom Jinja2 prompt templates to override defaults.
-                    Keys: "codeact_system", "codeact_user", "manager_system", "executor_system", "scripter_system"
-                    Values: Jinja2 template strings (NOT file paths)
-            timeout: Workflow timeout in seconds
+            goal: 사용자의 목표 또는 명령
+            config: 전체 설정 (llms가 제공되지 않은 경우 필수)
+            llms: 에이전트별 LLM 딕셔너리 또는 모든 에이전트에 사용할 단일 LLM (선택사항).
+                  제공되지 않으면 config 프로필에서 LLM이 로드됩니다.
+            tools: Tools 인스턴스 (사용자 정의/사전 구성 도구용) 또는 None (config의 기본값 사용).
+            custom_tools: 사용자 정의 도구 정의
+            credentials: 자격 증명 딕셔너리 {"SECRET_ID": "value"} 또는 None (사용 가능한 경우 config.credentials 사용)
+            variables: 실행 전반에 걸쳐 접근 가능한 사용자 정의 변수의 선택적 딕셔너리
+            output_model: 최종 답변에서 구조화된 출력 추출을 위한 선택적 Pydantic 모델
+            prompts: 기본값을 재정의할 사용자 정의 Jinja2 프롬프트 템플릿의 선택적 딕셔너리.
+                    키: "codeact_system", "codeact_user", "manager_system", "executor_system", "scripter_system"
+                    값: Jinja2 템플릿 문자열 (파일 경로 아님)
+            timeout: 워크플로우 타임아웃 (초)
         """
 
         self.user_id = kwargs.pop("user_id", None)
@@ -329,13 +329,13 @@ class DroidAgent(Workflow):
         self, ctx: Context, ev: CodeActExecuteEvent
     ) -> CodeActResultEvent:
         """
-        Execute a single task using the CodeActAgent.
+        CodeActAgent를 사용하여 단일 작업을 실행합니다.
 
         Args:
-            instruction: task of what the agent shall do
+            instruction: 에이전트가 수행해야 할 작업
 
         Returns:
-            Tuple of (success, reason)
+            (success, reason)의 튜플
         """
 
         logger.info(f"🔧 Executing task: {ev.instruction}")
@@ -473,10 +473,10 @@ class DroidAgent(Workflow):
         self, ctx: Context, ev: ManagerInputEvent
     ) -> ManagerPlanEvent | FinalizeEvent:
         """
-        Run Manager planning phase.
+        Manager 계획 단계를 실행합니다.
 
-        Pre-flight checks for termination before running manager.
-        The Manager analyzes current state and creates a plan with subgoals.
+        Manager 실행 전 종료에 대한 사전 검사.
+        Manager는 현재 상태를 분석하고 하위 목표와 함께 계획을 생성합니다.
         """
         if self.shared_state.step_number >= self.config.agent.max_steps:
             logger.warning(f"⚠️ Reached maximum steps ({self.config.agent.max_steps})")
@@ -519,9 +519,9 @@ class DroidAgent(Workflow):
         | TextManipulatorInputEvent
     ):
         """
-        Process Manager output and decide next step.
+        Manager 출력을 처리하고 다음 단계를 결정합니다.
 
-        Checks if task is complete, if ScripterAgent should run, or if Executor should take action.
+        작업이 완료되었는지, ScripterAgent를 실행해야 하는지, 또는 Executor가 조치를 취해야 하는지 확인합니다.
         """
         # Check for answer-type termination
         if ev.manager_answer.strip():
@@ -671,9 +671,9 @@ class DroidAgent(Workflow):
         self, ctx: Context, ev: ExecutorInputEvent
     ) -> ExecutorResultEvent:
         """
-        Run Executor action phase.
+        Executor 작업 단계를 실행합니다.
 
-        The Executor selects and executes a specific action for the current subgoal.
+        Executor는 현재 하위 목표에 대한 특정 작업을 선택하고 실행합니다.
         """
         logger.info("⚡ Running Executor for action...")
 
@@ -710,10 +710,10 @@ class DroidAgent(Workflow):
         self, ctx: Context, ev: ExecutorResultEvent
     ) -> ManagerInputEvent:
         """
-        Process Executor result and continue.
+        Executor 결과를 처리하고 계속 진행합니다.
 
-        Checks for error escalation and loops back to Manager.
-        Note: Max steps check is now done in run_manager pre-flight.
+        오류 확대를 확인하고 Manager로 다시 루프합니다.
+        참고: 최대 단계 확인은 이제 run_manager 사전 검사에서 수행됩니다.
         """
         # Check error escalation and reset flag when errors are resolved
         err_thresh = self.shared_state.err_to_manager_thresh
@@ -752,7 +752,7 @@ class DroidAgent(Workflow):
         self, ctx: Context, ev: ScripterExecutorInputEvent
     ) -> ScripterExecutorResultEvent:
         """
-        Instantiate and run ScripterAgent for off-device operations.
+        기기 외부 작업을 위한 ScripterAgent를 인스턴스화하고 실행합니다.
         """
         logger.info(f"🐍 Starting ScripterAgent for task: {ev.task[:2000]}...")
 
@@ -802,7 +802,7 @@ class DroidAgent(Workflow):
         self, ctx: Context, ev: ScripterExecutorResultEvent
     ) -> ManagerInputEvent:
         """
-        Process ScripterAgent result and loop back to Manager.
+        ScripterAgent 결과를 처리하고 Manager로 다시 루프합니다.
         """
         if ev.success:
             logger.info(

@@ -1,5 +1,5 @@
 """
-UI Actions - Core UI interaction tools for Android device control.
+UI 작업 - Android 기기 제어를 위한 핵심 UI 상호작용 도구.
 """
 
 import logging
@@ -27,7 +27,7 @@ PORTAL_DEFAULT_TCP_PORT = 8080
 
 
 class AdbTools(Tools):
-    """Core UI interaction tools for Android device control."""
+    """Android 기기 제어를 위한 핵심 UI 상호작용 도구."""
 
     def __init__(
         self,
@@ -38,15 +38,15 @@ class AdbTools(Tools):
         text_manipulator_llm=None,
         credential_manager=None,
     ) -> None:
-        """Initialize the AdbTools instance.
+        """AdbTools 인스턴스를 초기화합니다.
 
         Args:
-            serial: Device serial number
-            use_tcp: Whether to use TCP communication (default: False)
-            remote_tcp_port: TCP port for communication on device (default: 8080)
-            app_opener_llm: LLM instance for app opening workflow (optional)
-            text_manipulator_llm: LLM instance for text manipulation (optional)
-            credential_manager: CredentialManager instance for secret handling (optional)
+            serial: 기기 시리얼 번호
+            use_tcp: TCP 통신 사용 여부 (기본값: False)
+            remote_tcp_port: 기기의 통신용 TCP 포트 (기본값: 8080)
+            app_opener_llm: 앱 열기 워크플로우용 LLM 인스턴스 (선택사항)
+            text_manipulator_llm: 텍스트 조작용 LLM 인스턴스 (선택사항)
+            credential_manager: 비밀 처리를 위한 CredentialManager 인스턴스 (선택사항)
         """
         self._serial = serial
         self._use_tcp = use_tcp
@@ -55,38 +55,38 @@ class AdbTools(Tools):
         self._connected = False
 
         self._ctx = None
-        # Instance‐level cache for clickable elements (index-based tapping)
+        # 클릭 가능한 요소의 인스턴스 레벨 캐시 (인덱스 기반 탭)
         self.clickable_elements_cache: List[Dict[str, Any]] = []
         self.reason = None
         self.success = None
         self.finished = False
-        # Memory storage for remembering important information
+        # 중요한 정보를 기억하기 위한 메모리 저장소
         self.memory: List[str] = []
-        # Trajectory saving level
+        # 궤적 저장 수준
         self.save_trajectories = "none"
 
-        # LLM instances for specialized workflows
+        # 특수 워크플로우용 LLM 인스턴스
         self.app_opener_llm = app_opener_llm
         self.text_manipulator_llm = text_manipulator_llm
 
-        # Credential manager for secret handling
+        # 비밀 처리를 위한 자격 증명 관리자
         self.credential_manager = credential_manager
 
     async def connect(self) -> None:
         """
-        Establish connection to device and portal.
+        기기 및 포털에 대한 연결을 설정합니다.
         """
         if self._connected:
             return
 
-        # Connect to device
+        # 기기에 연결
         self.device = await adb.device(serial=self._serial)
 
-        # Initialize portal client
+        # 포털 클라이언트 초기화
         self.portal = PortalClient(self.device, prefer_tcp=self._use_tcp)
         await self.portal.connect()
 
-        # Set up keyboard
+        # 키보드 설정
         from droidrun.portal import setup_keyboard
 
         await setup_keyboard(self.device)
@@ -94,13 +94,13 @@ class AdbTools(Tools):
         self._connected = True
 
     async def _ensure_connected(self) -> None:
-        """Check if connected, raise error if not."""
+        """연결되어 있는지 확인하고, 그렇지 않으면 오류를 발생시킵니다."""
         if not self._connected:
             await self.connect()
 
     async def get_date(self) -> str:
         """
-        Get the current date and time on device.
+        기기의 현재 날짜와 시간을 가져옵니다.
         """
         await self._ensure_connected()
         result = await self.device.shell("date")
@@ -111,42 +111,42 @@ class AdbTools(Tools):
 
     def _extract_element_coordinates_by_index(self, index: int) -> Tuple[int, int]:
         """
-        Extract center coordinates from an element by its index.
+        인덱스로 요소의 중심 좌표를 추출합니다.
 
         Args:
-            index: Index of the element to find and extract coordinates from
+            index: 찾아서 좌표를 추출할 요소의 인덱스
 
         Returns:
-            Tuple of (x, y) center coordinates
+            (x, y) 중심 좌표의 튜플
 
         Raises:
-            ValueError: If element not found, bounds format is invalid, or missing bounds
+            ValueError: 요소를 찾을 수 없거나, 경계 형식이 유효하지 않거나, 경계가 누락된 경우
         """
 
         def collect_all_indices(elements):
-            """Recursively collect all indices from elements and their children."""
+            """요소와 그 자식들로부터 모든 인덱스를 재귀적으로 수집합니다."""
             indices = []
             for item in elements:
                 if item.get("index") is not None:
                     indices.append(item.get("index"))
-                # Check children if present
+                # 자식이 있는 경우 확인
                 children = item.get("children", [])
                 indices.extend(collect_all_indices(children))
             return indices
 
         def find_element_by_index(elements, target_index):
-            """Recursively find an element with the given index."""
+            """주어진 인덱스를 가진 요소를 재귀적으로 찾습니다."""
             for item in elements:
                 if item.get("index") == target_index:
                     return item
-                # Check children if present
+                # 자식이 있는 경우 확인
                 children = item.get("children", [])
                 result = find_element_by_index(children, target_index)
                 if result:
                     return result
             return None
 
-        # Check if we have cached elements
+        # 캐시된 요소가 있는지 확인
         if not self.clickable_elements_cache:
             raise ValueError("No UI elements cached. Call get_state first.")
 

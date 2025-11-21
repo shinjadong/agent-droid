@@ -1,5 +1,5 @@
 """
-DroidRun main entry point
+DroidRun 메인 진입점
 """
 
 from droidrun.cli.main import cli

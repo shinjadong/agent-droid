@@ -52,13 +52,13 @@ logger = logging.getLogger("droidrun")
 
 class ManagerAgent(Workflow):
     """
-    Planning and reasoning agent that decides what to do next.
+    다음에 무엇을 할지 결정하는 계획 및 추론 에이전트.
 
-    The Manager:
-    1. Analyzes current device state and action history
-    2. Creates plans with specific subgoals
-    3. Tracks progress and completed steps
-    4. Decides when tasks are complete or need to provide answers
+    Manager는:
+    1. 현재 기기 상태와 작업 히스토리 분석
+    2. 구체적인 하위 목표와 함께 계획 생성
+    3. 진행 상황 및 완료된 단계 추적
+    4. 작업 완료 시점 또는 답변 제공 필요 시점 결정
     """
 
     def __init__(

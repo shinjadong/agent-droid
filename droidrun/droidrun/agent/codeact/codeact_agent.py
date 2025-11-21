@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, List, Optional, Type, Union
 
 from pydantic import BaseModel
 
-# Suppress all warnings for llama-index import (version compatibility)
+# llama-index 임포트에 대한 모든 경고 억제 (버전 호환성)
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     from llama_index.core.base.llms.types import ChatMessage, ChatResponse
@@ -47,9 +47,9 @@ logger = logging.getLogger("droidrun")
 
 class CodeActAgent(Workflow):
     """
-    An agent that uses a ReAct-like cycle (Thought -> Code -> Observation)
-    to solve problems requiring code execution. It extracts code from
-    Markdown blocks and uses specific step types for tracking.
+    코드 실행이 필요한 문제를 해결하기 위해 ReAct와 유사한 사이클
+    (생각 -> 코드 -> 관찰)을 사용하는 에이전트. Markdown 블록에서 코드를
+    추출하고 추적을 위해 특정 단계 유형을 사용합니다.
     """
 
     def __init__(
